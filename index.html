@@ -120,6 +120,11 @@ textarea{min-height:90px;resize:vertical}
 .qitem h3{font-size:16px;min-width:0;overflow-wrap:anywhere}
 .qitem .m{font-size:13px;color:var(--muted)}
 .qitem .m b{font-family:var(--f-mono);color:var(--fg);font-weight:500}
+.docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:8px}
+@media (max-width:420px){.docs{grid-template-columns:minmax(0,1fr)}}
+.doc{display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.doc b{font-family:var(--f-display);font-size:16px}
+.doc span{font-size:12.5px;color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:40px 16px}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
 details summary{padding:14px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
@@ -238,6 +243,27 @@ details li span{color:var(--muted)}
     </div>
   </details>
 
+  <details id="orderDetails">
+    <summary>Order form details</summary>
+    <div class="in" style="display:grid;gap:12px">
+      <p class="note" style="margin:0">Fill in what you know. Anything left empty prints as a blank line for the client to complete by hand.</p>
+      <div class="grid">
+        <div class="f"><label for="legalName">Registered company name</label><input id="legalName" data-k="legalName" autocomplete="off"></div>
+        <div class="f"><label for="taxId">Tax / VAT number</label><input id="taxId" data-k="taxId" autocomplete="off"></div>
+      </div>
+      <div class="f"><label for="address">Registered address</label><textarea id="address" data-k="address" style="min-height:64px"></textarea></div>
+      <div class="grid">
+        <div class="f"><label for="billingEmail">Billing email</label><input id="billingEmail" data-k="billingEmail" type="email" autocomplete="off"></div>
+        <div class="f"><label for="poNumber">Purchase order no.</label><input id="poNumber" data-k="poNumber" autocomplete="off"></div>
+        <div class="f"><label for="signName">Who signs for the client</label><input id="signName" data-k="signName" autocomplete="off"></div>
+        <div class="f"><label for="signTitle">Their title</label><input id="signTitle" data-k="signTitle" autocomplete="off"></div>
+        <div class="f"><label for="startDate">Start date</label><input id="startDate" type="date" data-k="startDate"></div>
+        <div class="f"><label for="payMethod">Payment method</label>
+          <select id="payMethod" data-k="payMethod"><option value="">Use default</option><option>Bank transfer</option><option>Direct debit (SEPA)</option><option>Direct debit (Bacs)</option><option>Card</option></select></div>
+      </div>
+    </div>
+  </details>
+
   <div class="block">
     <div class="bh"><h2>Notes</h2><span class="tag">Internal, not on the PDF</span></div>
     <textarea id="notes" data-k="notes" placeholder="Pain points, who decides, next step, go-live month…"></textarea>
@@ -270,10 +296,14 @@ details li span{color:var(--muted)}
 
   <div class="row" style="margin-bottom:8px">
     <button class="btn primary" id="saveBtn">Save quote</button>
-    <button class="btn primary" id="pdfBtn">Download PDF</button>
-    <button class="btn" id="sharePdfBtn" hidden>Share PDF</button>
-    <button class="btn" id="previewPdfBtn">Preview PDF</button>
   </div>
+  <div class="docs">
+    <div class="doc"><b>Quote</b><span>Prices, savings and what's included</span>
+      <div class="row"><button class="btn primary small" id="pdfBtn">Download</button><button class="btn small" id="previewPdfBtn">Preview</button></div></div>
+    <div class="doc"><b>Order form</b><span>For the client to sign up</span>
+      <div class="row"><button class="btn primary small" id="orderBtn">Download</button><button class="btn small" id="previewOrderBtn">Preview</button></div></div>
+  </div>
+  <div class="row" style="margin-bottom:8px"><button class="btn" id="sharePdfBtn" hidden>Share both PDFs</button>
   <div class="row" style="margin-bottom:8px">
     <button class="btn" id="jsonBtn">Export JSON</button>
     <button class="btn" id="copyBtn">Copy summary</button>
@@ -373,9 +403,14 @@ details li span{color:var(--muted)}
       <div class="f"><label for="s_phone">Phone</label><input id="s_phone" data-s="phone" type="tel" autocomplete="tel"></div>
       <div class="f"><label for="s_web">Website</label><input id="s_web" data-s="web"></div>
       <div class="f"><label for="s_valid">Quote valid for (days)</label><input id="s_valid" data-s="valid" type="number" inputmode="numeric"></div>
+      <div class="f"><label for="s_payTerms">Payment terms</label><input id="s_payTerms" data-s="payTerms"></div>
+      <div class="f"><label for="s_payMethod">Default payment method</label><input id="s_payMethod" data-s="payMethod"></div>
     </div>
-    <div class="f"><label for="s_terms">Terms printed on every quote</label><textarea id="s_terms" data-s="terms"></textarea>
+    <div class="f"><label for="s_address">Company address</label><textarea id="s_address" data-s="address" style="min-height:64px"></textarea></div>
+    <div class="f"><label for="s_terms">Terms on the quote</label><textarea id="s_terms" data-s="terms"></textarea>
       <span class="q">One term per line.</span></div>
+    <div class="f"><label for="s_orderTerms">Terms on the order form</label><textarea id="s_orderTerms" data-s="orderTerms" style="min-height:160px"></textarea>
+      <span class="q">One term per line. Numbered on the PDF. Have these checked before first use.</span></div>
   </div>
   <div class="row"><button class="btn" id="resetPrices">Reset to draft prices</button></div>
 </section>
@@ -400,9 +435,11 @@ const DEFAULT_PRICES={base:290,incl:150,t1to:500,t1:0.95,t2to:1500,t2:0.70,t3:0.
 const today=()=>new Date().toISOString().slice(0,10);
 const BLANK={company:"",contact:"",qdate:today(),currency:"EUR",ressys:"tourplan",users:2,inv:0,peak:0,suppliers:0,statements:0,
   minBase:8,minFile:2,pctProb:25,minProb:20,salary:32000,hoursYear:1700,sharepoint:true,training:2,term:"12",discMonthly:0,discSetup:0,
-  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true};
+  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true,legalName:"",address:"",taxId:"",billingEmail:"",poNumber:"",signName:"",signTitle:"",startDate:"",payMethod:""};
 const DEFAULT_SELLER={name:"Stan",title:"Founder",company:"SR Travel Tech Services",vat:"",email:"stan@srtraveltech.com",phone:"",web:"subvoices.com",valid:30,
-  terms:"Monthly fees are invoiced monthly in advance; setup is invoiced on signature.\nPayment within 14 days of invoice.\nInvoice volumes above the agreed tier are billed at the tier price for that month.\nPrices exclude VAT."};
+  terms:"Monthly fees are invoiced monthly in advance; setup is invoiced on signature.\nPayment within 14 days of invoice.\nInvoice volumes above the agreed tier are billed at the tier price for that month.\nPrices exclude VAT.",
+  address:"",payTerms:"14 days from invoice date",payMethod:"Bank transfer",
+  orderTerms:"This order form, together with the Supvoices terms of service and data processing terms, forms the agreement between the customer and the supplier.\nThe subscription starts on the start date and runs for the initial term. After that it continues month to month until either party gives 30 days' written notice.\nMonthly fees are based on the number of supplier invoices processed each calendar month, at the prices above.\nThe supplier may change prices after the initial term with 60 days' written notice.\nThe customer's invoice data stays the property of the customer and can be exported at any time.\nThe supplier processes personal data only to provide the service, in line with the GDPR."};
 let seller=Object.assign({},DEFAULT_SELLER,LS_get("svq-seller",{}));
 function LS_get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",contact:"Sample contact",inv:420,peak:900,suppliers:380,statements:4,users:3,minBase:9,pctProb:30,minProb:25,salary:34000,_sample:true});
@@ -598,7 +635,7 @@ function renderSaved(){
     return '<div class="qitem" data-id="'+q._id+'"><div class="t"><h3>'+esc(q.company||"Untitled")+'</h3><span class="m">'+esc(q.qdate||"")+'</span></div>'+
       '<div class="m">Monthly <b>'+money(r.monthly,q.currency)+'</b> · Setup <b>'+money(r.setupNet,q.currency)+'</b> · Saves <b>'+money(r.saved,q.currency)+'</b>/mo · '+n0(num(q.inv))+' inv</div>'+
       (q.notes?'<div class="m">'+esc(q.notes.slice(0,120))+(q.notes.length>120?"…":"")+'</div>':"")+
-      '<div class="row"><button class="btn small" data-a="open">Open</button><button class="btn small" data-a="pdf">PDF</button><button class="btn small" data-a="json">JSON</button><button class="btn small" data-a="dup">Duplicate</button><button class="btn small" data-a="copy">Copy summary</button><button class="btn small danger" data-a="del">Delete</button></div></div>';
+      '<div class="row"><button class="btn small" data-a="open">Open</button><button class="btn small" data-a="pdf">Quote PDF</button><button class="btn small" data-a="order">Order form</button><button class="btn small" data-a="json">JSON</button><button class="btn small" data-a="dup">Duplicate</button><button class="btn small" data-a="copy">Copy summary</button><button class="btn small danger" data-a="del">Delete</button></div></div>';
   }).join("");
 }
 $("savedList").addEventListener("click",e=>{
@@ -610,7 +647,8 @@ $("savedList").addEventListener("click",e=>{
     if(a==="dup"){delete state._id;state.company=(q.company||"")+" (copy)";state.qdate=today();editingId=null}else editingId=q._id;
     if(q._prices && a==="open" && JSON.stringify(q._prices)!==JSON.stringify(prices)) toast("Opened with today's price list");
     LS.set("svq-draft",state); fillForm(); render(); show("quote"); window.scrollTo(0,0);
-  } else if(a==="pdf"){ downloadPdf(q, pricesFor(q)) }
+  } else if(a==="pdf"){ downloadPdf(q, pricesFor(q),"quote") }
+  else if(a==="order"){ downloadPdf(q, pricesFor(q),"order") }
   else if(a==="json"){ exportQuoteJson(q) }
   else if(a==="copy"){ copy(summaryText(q,calc(q,Object.assign({},DEFAULT_PRICES,q._prices||prices))),"Summary copied") }
   else if(a==="del"){
@@ -692,6 +730,32 @@ $("importFile").onchange=async e=>{
 };
 
 /* ---------- PDF ---------- */
+const PW=210, PL=18, PR=PW-18, PCW=PR-PL;
+const PC={NAVY:[20,35,60],GREEN:[43,182,115],INK:[20,35,60],MUTED:[96,110,132],LINE:[214,222,232],TINT:[241,244,248],PALE:[185,197,214]};
+const fmtDate=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+function pdfHeader(doc,label,no,dateTxt){
+  const L=PL,R=PR;
+  doc.setFillColor(...PC.NAVY); doc.rect(0,0,PW,40,"F");
+  doc.setDrawColor(...PC.PALE); doc.setLineWidth(0.5); doc.roundedRect(L,13,11,11,2,2,"S");
+  doc.line(L+2.5,16.5,L+8.5,16.5); doc.line(L+2.5,19,L+6,19);
+  doc.setDrawColor(...PC.GREEN); doc.setLineWidth(1); doc.line(L+5.5,21.3,L+6.9,22.6); doc.line(L+6.9,22.6,L+9.7,19.4);
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.text("Supvoices",L+15,21.5);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...PC.PALE); doc.text("Supplier invoice matching for tour operators",L+15,27);
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(255,255,255); doc.text(label,R,17,{align:"right"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...PC.PALE);
+  doc.text(no,R,23,{align:"right"}); doc.text(dateTxt,R,28,{align:"right"});
+}
+function pdfFooter(doc,no){
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setDrawColor(...PC.LINE); doc.setLineWidth(0.2); doc.line(PL,284,PR,284);
+    doc.setFontSize(7.5); doc.setTextColor(...PC.MUTED); doc.setFont("helvetica","normal");
+    doc.text([seller.company,seller.vat&&("VAT "+seller.vat),seller.email,seller.web].filter(Boolean).join("   ·   "),PL,289);
+    doc.text(no+"   ·   Page "+i+" of "+pages,PR,289,{align:"right"});
+  }
+}
+function orderNo(q){return quoteNo(q).replace(/^SQ-/,"SO-")}
 function buildPdf(q,p){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:"a4"});
@@ -705,16 +769,7 @@ function buildPdf(q,p){
   const valid=new Date(qd.getTime()+num(seller.valid||30)*864e5);
   const termTxt={1:"Monthly, cancel with 30 days' notice","12":"12 months","24":"24 months"}[q.term];
 
-  // header band
-  doc.setFillColor(...NAVY); doc.rect(0,0,W,40,"F");
-  doc.setDrawColor(185,197,214); doc.setLineWidth(0.5); doc.roundedRect(L,13,11,11,2,2,"S");
-  doc.setLineWidth(0.5); doc.line(L+2.5,16.5,L+8.5,16.5); doc.line(L+2.5,19,L+6,19);
-  doc.setDrawColor(...GREEN); doc.setLineWidth(1); doc.line(L+5.5,21.3,L+6.9,22.6); doc.line(L+6.9,22.6,L+9.7,19.4);
-  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.text("Supvoices",L+15,21.5);
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(185,197,214); doc.text("Supplier invoice matching for tour operators",L+15,27);
-  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(255,255,255); doc.text("QUOTE",R,17,{align:"right"});
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(185,197,214);
-  doc.text(no,R,23,{align:"right"}); doc.text(fmtD(qd),R,28,{align:"right"});
+  pdfHeader(doc,"QUOTE",no,fmtD(qd));
 
   // parties
   let y=52;
@@ -822,40 +877,142 @@ function buildPdf(q,p){
   doc.line(L,y+14,L+75,y+14); doc.line(L+90,y+14,R,y+14);
   doc.text("Name and signature",L,y+18.5); doc.text("Date",L+90,y+18.5);
 
-  // footer
-  const pages=doc.getNumberOfPages();
-  for(let i=1;i<=pages;i++){
-    doc.setPage(i);
-    doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(L,284,R,284);
-    doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.setFont("helvetica","normal");
-    doc.text([seller.company,seller.vat&&("VAT "+seller.vat),seller.email,seller.web].filter(Boolean).join("   ·   "),L,289);
-    doc.text(no+"   ·   Page "+i+" of "+pages,R,289,{align:"right"});
-  }
+  pdfFooter(doc,no);
   doc.setProperties({title:"Supvoices quote "+no+" – "+(q.company||""),author:seller.name||"",subject:"Quote",creator:"Supvoices Quote Builder"});
   return doc;
 }
-function pdfName(q){return "Supvoices-Quote-"+quoteNo(q)+"-"+slug(q.company)+".pdf"}
-function downloadPdf(q,p){
+function buildOrderPdf(q,p){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const r=calc(q,p), c=q.currency, L=PL, R=PR, CW=PCW;
+  const {INK,MUTED,LINE,TINT,NAVY}=PC;
+  const m=(v,dp)=>money(v,c,dp).replace(/−/g,"-").replace(/[  ]/g," ");
+  const no=orderNo(q);
+  const qd=q.qdate?new Date(q.qdate+"T12:00:00"):new Date();
+  const BLANKLINE={content:"",styles:{minCellHeight:10}};
+  const val=v=>(v&&String(v).trim())?String(v).trim():BLANKLINE;
+  pdfHeader(doc,"ORDER FORM",no,fmtDate(qd));
+  let y=52;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...INK);
+  const intro=doc.splitTextToSize("This order form sets out the Supvoices subscription the customer is ordering"+(q.quoteNo||q._id?", based on quote "+quoteNo(q):"")+". It becomes binding when signed by both parties.",CW);
+  doc.text(intro,L,y); y+=intro.length*4.6+5;
+
+  const kv={margin:{left:L,right:L},theme:"plain",styles:{font:"helvetica",fontSize:9.5,textColor:INK,cellPadding:{top:2.2,bottom:2.2,left:2,right:2},lineColor:LINE,overflow:"linebreak"},
+    bodyStyles:{lineWidth:{bottom:0.15},valign:"top"},headStyles:{fontStyle:"bold",fontSize:7.5,textColor:MUTED,lineWidth:{bottom:0.3}},
+    columnStyles:{0:{cellWidth:58,textColor:MUTED}},
+    didParseCell:d=>{if(d.row.raw&&d.row.raw._total){d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=TINT;d.cell.styles.lineWidth=0;d.cell.styles.textColor=INK}}};
+  const section=(t,need)=>{if(y>277-(need||40)){doc.addPage();y=22}doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...INK);doc.text(t,L,y);y+=3;doc.setFont("helvetica","normal")};
+  const tot=(a,b)=>{const x=[a,b];x._total=true;return x};
+
+  // parties side by side
+  const half=(CW-8)/2;
+  doc.autoTable({...kv,startY:y,margin:{left:L,right:L+half+8},head:[["CUSTOMER",""]],columnStyles:{0:{cellWidth:28,textColor:MUTED}},styles:{...kv.styles,fontSize:9},
+    body:[["Company",val(q.legalName||q.company)],["Address",val(q.address)],["Tax / VAT no.",val(q.taxId)],["Contact",val(q.contact)],["Billing email",val(q.billingEmail)]]});
+  const yL=doc.lastAutoTable.finalY;
+  doc.autoTable({...kv,startY:y,margin:{left:L+half+8,right:L},head:[["SUPPLIER",""]],columnStyles:{0:{cellWidth:28,textColor:MUTED}},styles:{...kv.styles,fontSize:9},
+    body:[["Company",val(seller.company)],["Address",val(seller.address)],["Tax / VAT no.",val(seller.vat)],["Contact",val(seller.name)],["Email",val(seller.email)]]});
+  y=Math.max(yL,doc.lastAutoTable.finalY)+10;
+
+  // subscription
+  const termTxt={1:"Monthly rolling","12":"12 months","24":"24 months"}[q.term];
+  const tiers=[];
+  tiers.push(n0(p.incl)+" invoices per month included");
+  tiers.push("Invoices "+n0(p.incl+1)+"–"+n0(p.t1to)+": "+m(p.t1,2)+" each");
+  tiers.push("Invoices "+n0(p.t1to+1)+"–"+n0(p.t2to)+": "+m(p.t2,2)+" each");
+  tiers.push("Above "+n0(p.t2to)+": "+m(p.t3,2)+" each");
+  section("Subscription",80);
+  const subRows=[
+    ["Service","Supvoices supplier invoice matching"+(q.sharepoint?", with records in the customer's SharePoint":"")],
+    ["Reservation system",{tourplan:"TourPlan",nitro:"Nitro",other:"Other (to be agreed)",none:"None"}[q.ressys]],
+    ["Start date",q.startDate?fmtDate(new Date(q.startDate+"T12:00:00")):{...BLANKLINE}],
+    ["Initial term",termTxt],
+    ["Expected volume",n0(num(q.inv))+" supplier invoices per month"],
+    ["Invoice pricing",tiers.join("\n")],
+    ["Users",Math.max(num(q.users),p.usersIncl)+" users"+(p.usersIncl?" ("+p.usersIncl+" included, then "+m(p.user)+" per user per month)":"")],
+  ];
+  if(r.discPct) subRows.push(["Discount",n1(r.discPct)+"% on monthly fees"+(r.termPct?" (includes "+r.termPct+"% for the "+q.term+"-month term)":"")]);
+  subRows.push(tot("Monthly fee at expected volume",m(r.monthly)+" excl. VAT"));
+  doc.autoTable({...kv,startY:y,body:subRows});
+  y=doc.lastAutoTable.finalY+9;
+
+  // one-off
+  section("One-off setup fees",20+r.setup.length*8);
+  const sb=r.setup.map(l=>[l[0],m(l[1])]);
+  if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
+  sb.push(tot("Setup fee",m(r.setupNet)+" excl. VAT"));
+  doc.autoTable({...kv,startY:y,columnStyles:{0:{cellWidth:"auto",textColor:INK},1:{halign:"right",cellWidth:50}},body:sb});
+  y=doc.lastAutoTable.finalY+9;
+
+  // billing
+  section("Billing",50);
+  doc.autoTable({...kv,startY:y,body:[
+    ["Setup fee","Invoiced on signature"],
+    ["Monthly fee","Invoiced monthly in advance; invoices above the included volume invoiced the following month"],
+    ["Payment terms",seller.payTerms||"14 days from invoice date"],
+    ["Payment method",q.payMethod||seller.payMethod||"Bank transfer"],
+    ["Purchase order no.",val(q.poNumber)],
+    ["Currency",c+", all prices exclude VAT"],
+  ]});
+  y=doc.lastAutoTable.finalY+9;
+
+  // terms
+  const terms=String(seller.orderTerms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean);
+  if(terms.length){
+    section("Terms",30);  y+=3;
+    doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+    terms.forEach((t,i)=>{const tl=doc.splitTextToSize(t,CW-7); if(y+tl.length*4>270){doc.addPage();y=22}
+      doc.text((i+1)+".",L,y); doc.text(tl,L+6,y); y+=tl.length*4+1.4});
+    y+=6;
+  }
+
+  // signatures
+  if(y>215){doc.addPage();y=22}
+  section("Signatures",60); y+=4;
+  const col=(x,head,name,title)=>{
+    let yy=y;
+    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(head,x,yy); yy+=7;
+    doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...INK);
+    [["Name",name],["Title",title],["Signature",""],["Date",""]].forEach(([lab,v])=>{
+      doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(lab,x,yy);
+      doc.setFontSize(10); doc.setTextColor(...INK); if(v) doc.text(v,x+20,yy);
+      doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(x+20,yy+1.5,x+half,yy+1.5);
+      yy+=lab==="Signature"?14:9;
+    });
+  };
+  col(L,"FOR THE CUSTOMER: "+(q.legalName||q.company||"").toUpperCase().slice(0,40),q.signName||"",q.signTitle||"");
+  col(L+half+8,"FOR THE SUPPLIER: "+(seller.company||"").toUpperCase().slice(0,40),seller.name||"",seller.title||"");
+
+  pdfFooter(doc,no);
+  doc.setProperties({title:"Supvoices order form "+no+" – "+(q.company||""),author:seller.name||"",subject:"Order form",creator:"Supvoices Quote Builder"});
+  return doc;
+}
+const KINDS={quote:{build:buildPdf,name:q=>"Supvoices-Quote-"+quoteNo(q)+"-"+slug(q.company)+".pdf",label:"Quote"},
+  order:{build:buildOrderPdf,name:q=>"Supvoices-Order-Form-"+orderNo(q)+"-"+slug(q.company)+".pdf",label:"Order form"}};
+function downloadPdf(q,p,kind){
+  const K=KINDS[kind||"quote"];
   if(!window.jspdf){toast("PDF tools didn't load. Check your connection and reload.");return}
-  try{const doc=buildPdf(q,p); saveBlob(doc.output("blob"),pdfName(q)); toast("PDF downloaded")}
+  try{saveBlob(K.build(q,p).output("blob"),K.name(q)); toast(K.label+" PDF downloaded")}
   catch(e){console.error(e);toast("Couldn't make the PDF: "+e.message)}
 }
-$("pdfBtn").onclick=()=>downloadPdf(state,prices);
-$("previewPdfBtn").onclick=()=>{
+function previewPdf(kind){
   if(!window.jspdf){toast("PDF tools didn't load");return}
-  const url=URL.createObjectURL(buildPdf(state,prices).output("blob"));
+  const url=URL.createObjectURL(KINDS[kind].build(state,prices).output("blob"));
   const w=window.open(url,"_blank"); if(!w) location.href=url;
-};
+}
+$("pdfBtn").onclick=()=>downloadPdf(state,prices,"quote");
+$("orderBtn").onclick=()=>downloadPdf(state,prices,"order");
+$("previewPdfBtn").onclick=()=>previewPdf("quote");
+$("previewOrderBtn").onclick=()=>previewPdf("order");
 try{
   const testFile=new File(["x"],"t.pdf",{type:"application/pdf"});
   if(navigator.canShare&&navigator.canShare({files:[testFile]})) $("sharePdfBtn").hidden=false;
 }catch(e){}
 $("sharePdfBtn").onclick=async()=>{
-  try{const f=new File([buildPdf(state,prices).output("blob")],pdfName(state),{type:"application/pdf"});
-    await navigator.share({files:[f],title:"Supvoices quote",text:"Supvoices quote for "+(state.company||"")});
-  }catch(e){if(e.name!=="AbortError")toast("Sharing didn't work. Use Download PDF.")}
+  try{const files=["quote","order"].map(k=>new File([KINDS[k].build(state,prices).output("blob")],KINDS[k].name(state),{type:"application/pdf"}));
+    await navigator.share({files,title:"Supvoices quote and order form",text:"Supvoices quote and order form for "+(state.company||"")});
+  }catch(e){if(e.name!=="AbortError")toast("Sharing didn't work. Use the download buttons.")}
 };
-window.__svq={buildPdf,calc,get state(){return state},get prices(){return prices}};
+window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices}};
 
 fillForm(); fillPrices(); fillSeller(); renderSaved(); render();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
