@@ -440,7 +440,24 @@ details li span{color:var(--muted)}
     </div>
     <div class="f"><label for="s_terms">Extra lines on the quote</label><textarea id="s_terms" data-s="terms" placeholder="Optional. One per line."></textarea></div>
   </div>
-  <div class="row"><button class="btn" id="resetPrices">Reset prices to drafts</button></div>
+  <div class="block">
+    <div class="bh"><h2>Defaults</h2><span class="tag">Shared through GitHub</span></div>
+    <p class="note" style="margin:0" id="defaultsInfo">The defaults are the prices and company settings every new device starts with.</p>
+    <div class="row">
+      <button class="btn" id="resetPrices">Reset to defaults</button>
+      <button class="btn primary" id="saveDefaults">Save as defaults</button>
+    </div>
+    <p class="note" style="margin:0">Reset puts back the default prices and company settings on this device. Your saved quotes and the next quote number stay as they are.</p>
+    <details>
+      <summary style="font-size:14px;padding:10px 0">GitHub access for saving defaults</summary>
+      <div style="display:grid;gap:10px">
+        <p class="note" style="margin:0">Saving needs a GitHub fine-grained token with access to the <b>supvoices-quote</b> repository only, permission <b>Contents: Read and write</b>. It is kept on this device only and never included in backups.</p>
+        <div class="f"><label for="ghToken">GitHub token</label><input id="ghToken" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></div>
+        <div class="row"><button class="btn small" id="ghSave">Save token on this device</button><button class="btn small danger" id="ghForget">Remove token</button></div>
+        <span class="note" id="ghStatus"></span>
+      </div>
+    </details>
+  </div>
 </section>
 </main>
 
@@ -474,6 +491,10 @@ const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",con
 
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+const GH={owner:"stanobear",repo:"supvoices-quote",path:"defaults.json",branch:"main"};
+const SELLER_LOCAL=["seqNext","_v"]; // per-device, never shared as defaults
+let defaultsMeta=null;
+const hadPrices=LS.get("svq-prices",null)!==null, hadSeller=LS.get("svq-seller",null)!==null;
 let prices=Object.assign({},DEFAULT_PRICES,LS.get("svq-prices",{}));
 let seller=Object.assign({},DEFAULT_SELLER,LS.get("svq-seller",{}));
 // settings from the first version that no longer apply
@@ -643,10 +664,62 @@ document.querySelectorAll("[data-k]").forEach(el=>{
 document.querySelectorAll("[data-p]").forEach(el=>el.addEventListener("input",()=>{prices[el.dataset.p]=num(el.value);LS.set("svq-prices",prices);render()}));
 document.querySelectorAll("[data-s]").forEach(el=>el.addEventListener("input",()=>{seller[el.dataset.s]=el.value;LS.set("svq-seller",seller);render()}));
 
-$("resetPrices").onclick=function(){
-  if(this.dataset.armed){prices=Object.assign({},DEFAULT_PRICES);LS.set("svq-prices",prices);fillPrices();render();toast("Draft prices restored");this.textContent="Reset prices to drafts";delete this.dataset.armed}
-  else{this.dataset.armed=1;this.textContent="Tap again to reset";setTimeout(()=>{this.textContent="Reset prices to drafts";delete this.dataset.armed},3000)}
-};
+function armed(btn,label,fn){
+  if(btn.dataset.armed){delete btn.dataset.armed;btn.textContent=label;fn();return}
+  btn.dataset.armed=1;btn.textContent="Tap again to confirm";
+  setTimeout(()=>{if(btn.dataset.armed){btn.textContent=label;delete btn.dataset.armed}},3000);
+}
+function sharedSeller(){const o={...seller};SELLER_LOCAL.forEach(k=>delete o[k]);return o}
+$("resetPrices").onclick=function(){armed(this,"Reset to defaults",()=>{
+  prices=Object.assign({},DEFAULT_PRICES);LS.set("svq-prices",prices);
+  const keep={};SELLER_LOCAL.forEach(k=>{if(k in seller)keep[k]=seller[k]});
+  seller=Object.assign({},DEFAULT_SELLER,keep);LS.set("svq-seller",seller);
+  fillPrices();fillSeller();render();renderSaved();toast("Defaults restored")})};
+
+/* ---------- defaults shared through GitHub ---------- */
+function showDefaultsInfo(){
+  $("defaultsInfo").textContent=defaultsMeta&&defaultsMeta.updated
+    ?"Defaults last saved "+new Date(defaultsMeta.updated).toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})+". Every new device starts with them."
+    :"The defaults are the prices and company settings every new device starts with.";
+  const t=LS.get("svq-gh",null);
+  $("ghStatus").textContent=t?"A token is saved on this device.":"No token saved on this device.";
+}
+async function loadRepoDefaults(){
+  try{
+    const r=await fetch("defaults.json",{cache:"no-store"}); if(!r.ok) return;
+    const d=await r.json(); if(!d||typeof d!=="object") return;
+    if(d.prices) Object.assign(DEFAULT_PRICES,d.prices);
+    if(d.seller){const sh={...d.seller};SELLER_LOCAL.forEach(k=>delete sh[k]);Object.assign(DEFAULT_SELLER,sh)}
+    defaultsMeta={updated:d.updated};
+    // a device that has never changed settings follows the shared defaults
+    if(!hadPrices){prices=Object.assign({},DEFAULT_PRICES)}
+    if(!hadSeller){const keep={};SELLER_LOCAL.forEach(k=>{if(k in seller)keep[k]=seller[k]});seller=Object.assign({},DEFAULT_SELLER,keep)}
+    fillPrices();fillSeller();render();renderSaved();
+  }catch(e){} finally{showDefaultsInfo()}
+}
+const b64=str=>btoa(unescape(encodeURIComponent(str)));
+async function saveDefaultsToGitHub(){
+  const token=LS.get("svq-gh",null);
+  if(!token){$("ghToken").closest("details").open=true;$("ghToken").focus();toast("Add a GitHub token first");return}
+  const btn=$("saveDefaults"); btn.disabled=true; btn.textContent="Saving…";
+  const api="https://api.github.com/repos/"+GH.owner+"/"+GH.repo+"/contents/"+GH.path;
+  const headers={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
+  try{
+    let sha;
+    const cur=await fetch(api+"?ref="+GH.branch,{headers,cache:"no-store"});
+    if(cur.ok) sha=(await cur.json()).sha;
+    else if(cur.status!==404) throw new Error(cur.status===401?"the token was refused. Check it hasn't expired.":cur.status===403||cur.status===404?"the token can't access the repository.":"GitHub answered "+cur.status+".");
+    const data={updated:new Date().toISOString(),prices:{...prices},seller:sharedSeller()};
+    const put=await fetch(api,{method:"PUT",headers,body:JSON.stringify({message:"Update quote builder defaults",content:b64(JSON.stringify(data,null,2)+"\n"),branch:GH.branch,...(sha?{sha}:{})})});
+    if(!put.ok){const j=await put.json().catch(()=>({}));throw new Error(put.status===403||put.status===404?"the token needs Contents: Read and write on supvoices-quote.":(j.message||"GitHub answered "+put.status+"."))}
+    Object.assign(DEFAULT_PRICES,data.prices);Object.assign(DEFAULT_SELLER,data.seller);defaultsMeta={updated:data.updated};
+    showDefaultsInfo();toast("Defaults saved to GitHub. Other devices get them within a few minutes.");
+  }catch(e){toast("Couldn't save: "+(e.message||"no connection to GitHub."))}
+  finally{btn.disabled=false;btn.textContent="Save as defaults"}
+}
+$("saveDefaults").onclick=function(){armed(this,"Save as defaults",saveDefaultsToGitHub)};
+$("ghSave").onclick=()=>{const v=$("ghToken").value.trim();if(!v){toast("Paste the token first");return}LS.set("svq-gh",v);$("ghToken").value="";showDefaultsInfo();toast("Token saved on this device")};
+$("ghForget").onclick=()=>{try{localStorage.removeItem("svq-gh")}catch(e){}showDefaultsInfo();toast("Token removed")};
 const blankState=()=>Object.assign({},BLANK,{qdate:today()});
 $("clearSample").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo(0,0)};
 $("newBtn").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote")};
@@ -1107,7 +1180,7 @@ document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
 
 window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
-fillForm(); fillPrices(); fillSeller(); renderSaved(); render();
+fillForm(); fillPrices(); fillSeller(); renderSaved(); render(); showDefaultsInfo(); loadRepoDefaults();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
 if("serviceWorker" in navigator&&location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();

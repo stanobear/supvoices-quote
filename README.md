@@ -36,8 +36,17 @@ Open the GitHub Pages URL on your phone, then use **Share → Add to Home Screen
 - `sw.js` caches the app for offline use
 - `manifest.webmanifest` and the `icon-*` files handle home-screen install
 
-## Change prices
-Use the **Price list** tab (which also holds your company details and the quote and order form terms) in the app. Your changes are stored on the device. To change the defaults
-for everyone, edit `DEFAULT_PRICES` and `DEFAULT_SELLER` in `index.html`.
+## Change prices and defaults
+Change prices and company details in the app's **Settings** tab. Changes are stored on that device.
 
-After changing files, raise `CACHE` in `sw.js` (e.g. `svq-v2`) so installed copies update.
+To share them with every device, tap **Save as defaults** at the bottom of Settings. This commits
+`defaults.json` to this repository. New devices start from it, and **Reset to defaults** goes back to it.
+Saved quotes and the next quote number are never touched.
+
+Saving needs a GitHub fine-grained token, entered once in Settings and kept on that device only:
+GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token.
+Repository access: only `stanobear/supvoices-quote`. Permissions: Contents, Read and write.
+
+The repository is public, so `defaults.json` (prices and company details) can be read by anyone.
+
+After changing code files, raise `CACHE` in `sw.js` so installed copies update.

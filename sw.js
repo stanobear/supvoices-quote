@@ -1,6 +1,6 @@
 // Keeps the quote builder working offline (e.g. at a client site with poor signal).
-const CACHE = "svq-v4";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png",
+const CACHE = "svq-v5";
+const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "defaults.json",
   "vendor/jspdf.umd.min.js", "vendor/jspdf.plugin.autotable.min.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
