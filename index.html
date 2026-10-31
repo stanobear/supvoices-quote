@@ -463,7 +463,7 @@ const DEFAULT_PRICES={base:290,incl:150,t1to:500,t1:0.95,t2to:1500,t2:0.70,t3:0.
   onb:900,rsTp:600,rsNi:600,rsOt:1500,spSetup:400,supp:100,stmt:150,trainIncl:2,train:250};
 const DEFAULT_SELLER={company:"Supvoices Ltd",companyNo:"",vat:"",web:"supvoices.com",address:"",
   email:"hello@supvoices.com",billing:"accounts@supvoices.com",notices:"legal@supvoices.com",region:"United Kingdom (London)",
-  name:"",title:"",docVersion:"1.0",legalBase:"supvoices.com/legal",valid:30,payDays:30,noticeMonths:3,seqNext:1,terms:""};
+  name:"",title:"",docVersion:"1.0",legalBase:"supvoices.com/legal",valid:30,payDays:7,noticeMonths:3,seqNext:1,terms:""};
 const today=()=>new Date().toISOString().slice(0,10);
 const BLANK={company:"",contact:"",contactEmail:"",qdate:today(),currency:"GBP",ressys:"tourplan",users:2,entities:1,
   inv:0,peak:0,suppliers:0,statements:0,minBase:8,minFile:2,pctProb:25,minProb:20,salary:30000,hoursYear:1700,
@@ -478,6 +478,8 @@ let prices=Object.assign({},DEFAULT_PRICES,LS.get("svq-prices",{}));
 let seller=Object.assign({},DEFAULT_SELLER,LS.get("svq-seller",{}));
 // settings from the first version that no longer apply
 if(seller.web==="subvoices.com") seller.web="supvoices.com";
+// payment terms moved from 30 to 7 days (Oct 2026); update devices still on the old default
+if(!seller._v||seller._v<2){if(Number(seller.payDays)===30)seller.payDays=7;seller._v=2;try{localStorage.setItem("svq-seller",JSON.stringify(seller))}catch(e){}}
 let quotes=LS.get("svq-quotes",[]);
 let state=(()=>{const d=LS.get("svq-draft",null);return d?Object.assign({},BLANK,d):Object.assign({},SAMPLE)})();
 if(state.term==="1") state.term="12";
@@ -934,7 +936,7 @@ function buildPdf(q,p){
     "The initial term is "+q.term+" months from the Start Date. It then renews for further 12 months unless either party gives at least "+(seller.noticeMonths||3)+" months' written notice before the end of the current term.",
     "The setup fee is invoiced on signature, the monthly fee monthly in advance, and invoices above the allowance monthly in arrears. Unused allowance does not carry over.",
     "A Processed Invoice is each supplier invoice or credit note extracted by the service, counted once.",
-    "Invoices are payable within "+(seller.payDays||30)+" days. Prices exclude VAT.",
+    "Invoices are payable within "+(seller.payDays||7)+" days of the invoice date. Prices exclude VAT.",
     "This quote is subject to the Supvoices Subscription Terms, Data Processing Agreement, Service Levels and Support, and Acceptable Use Policy (version "+v+"), published at "+base+"."];
   String(seller.terms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean).forEach(t=>terms.push(t));
   if(q.pdfSavings!==false&&r.inv>0&&r.hourly>0) terms.push("Savings are estimates based on the volumes, times and staff costs discussed and are not a guarantee.");
@@ -1019,7 +1021,7 @@ function buildOrderPdf(q,p){
   if(r.extraEnt) k.para("The monthly subscription fee includes "+r.extraEnt+" additional "+(r.extraEnt>1?"companies":"company")+" at "+m(p.entity)+" per month each.",{size:8.8,color:MUTED,after:1.5});
   if(r.discPct) k.para("The monthly subscription fee includes a discount of "+n1(r.discPct)+"%"+(r.termPct?" for the "+q.term+"-month initial term":"")+".",{size:8.8,color:MUTED,after:1.5});
   if(num(q.discSetup)) k.para("The setup fee includes a discount of "+num(q.discSetup)+"% (full price "+m(r.setupGross)+").",{size:8.8,color:MUTED,after:1.5});
-  k.para("All prices are in "+(CURNAME[c]||c)+" and exclude VAT. Invoices are payable within "+(seller.payDays||30)+" days. A Processed Invoice is each supplier invoice or credit note extracted by the Service, counted once (see the Subscription Terms)."+(q.poNumber?" Customer purchase order number: "+q.poNumber+".":""),{size:8.8,color:MUTED,after:6});
+  k.para("All prices are in "+(CURNAME[c]||c)+" and exclude VAT. Invoices are payable within "+(seller.payDays||7)+" days of the invoice date. A Processed Invoice is each supplier invoice or credit note extracted by the Service, counted once (see the Subscription Terms)."+(q.poNumber?" Customer purchase order number: "+q.poNumber+".":""),{size:8.8,color:MUTED,after:6});
 
   // 4 term
   k.h2("4. Term",50);
