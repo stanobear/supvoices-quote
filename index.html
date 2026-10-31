@@ -125,6 +125,7 @@ textarea{min-height:90px;resize:vertical}
 .doc{display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
 .doc b{font-family:var(--f-display);font-size:16px}
 .doc span{font-size:12.5px;color:var(--muted)}
+.warnline{font-size:12.5px;color:var(--warn)}
 .empty{text-align:center;color:var(--muted);padding:40px 16px}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
 details summary{padding:14px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
@@ -137,7 +138,6 @@ details li span{color:var(--muted)}
 </style>
 </head>
 <body>
-
 <header>
   <div class="wrap">
     <div class="brand">
@@ -147,7 +147,7 @@ details li span{color:var(--muted)}
     <nav aria-label="Views">
       <button data-view="quote" aria-current="page">Quote</button>
       <button data-view="saved">Saved <span id="savedCount"></span></button>
-      <button data-view="prices">Price list</button>
+      <button data-view="prices">Settings</button>
     </nav>
   </div>
 </header>
@@ -165,15 +165,18 @@ details li span{color:var(--muted)}
     <div class="bh"><h2>Client</h2><span class="tag">Who and where</span></div>
     <div class="grid">
       <div class="f"><label for="company">Company</label><input id="company" data-k="company" autocomplete="off"></div>
-      <div class="f"><label for="contact">Contact</label><input id="contact" data-k="contact" autocomplete="off"></div>
+      <div class="f"><label for="contact">Contact name</label><input id="contact" data-k="contact" autocomplete="off"></div>
+      <div class="f"><label for="contactEmail">Contact email</label><input id="contactEmail" type="email" data-k="contactEmail" autocomplete="off"></div>
       <div class="f"><label for="qdate">Date</label><input id="qdate" type="date" data-k="qdate"></div>
       <div class="f"><label for="currency">Currency</label>
-        <select id="currency" data-k="currency"><option>EUR</option><option>GBP</option><option>USD</option></select></div>
+        <select id="currency" data-k="currency"><option>GBP</option><option>EUR</option><option>USD</option></select></div>
       <div class="f"><label for="ressys">Reservation system</label>
         <select id="ressys" data-k="ressys"><option value="tourplan">TourPlan</option><option value="nitro">Nitro</option><option value="other">Other system</option><option value="none">None / spreadsheet</option></select>
         <span class="q">Where do vouchers or purchase orders live?</span></div>
       <div class="f"><label for="users">People who process invoices</label><input id="users" type="number" min="1" inputmode="numeric" data-k="users">
-        <span class="q">Including supervisors who approve.</span></div>
+        <span class="q">For the savings estimate. Users are unlimited.</span></div>
+      <div class="f"><label for="entities">Companies / entities</label><input id="entities" type="number" min="1" inputmode="numeric" data-k="entities">
+        <span class="q">Separate legal companies processing invoices. One is included.</span></div>
     </div>
   </div>
 
@@ -181,9 +184,9 @@ details li span{color:var(--muted)}
     <div class="bh"><h2>Volume</h2><span class="tag">How much</span></div>
     <div class="grid">
       <div class="f"><label for="inv">Supplier invoices per month</label><input id="inv" type="number" min="0" inputmode="numeric" data-k="inv">
-        <span class="q">Average across the year. "How many did you post last year?" ÷ 12.</span></div>
+        <span class="q">Average across the year. Last year's total ÷ 12. Include credit notes.</span></div>
       <div class="f"><label for="peak">Invoices in the busiest month</label><input id="peak" type="number" min="0" inputmode="numeric" data-k="peak">
-        <span class="q">Used for the talking point, not the price.</span></div>
+        <span class="q">Helps choose the allowance.</span></div>
       <div class="f"><label for="suppliers">Active suppliers</label><input id="suppliers" type="number" min="0" inputmode="numeric" data-k="suppliers">
         <span class="q">Suppliers billed in the last 12 months.</span></div>
       <div class="f"><label for="statements">Suppliers sending monthly statements</label><input id="statements" type="number" min="0" inputmode="numeric" data-k="statements">
@@ -211,22 +214,27 @@ details li span{color:var(--muted)}
       <div class="f"><label for="salary">Yearly cost of one person</label><input id="salary" type="number" min="0" step="500" inputmode="numeric" data-k="salary">
         <span class="q">Salary plus employer costs. Ask for a range if they won't say.</span></div>
       <div class="f"><label for="hoursYear">Working hours per year</label><input id="hoursYear" type="number" min="1" inputmode="numeric" data-k="hoursYear">
-        <span class="q">About 1,700 in Spain and the UK.</span></div>
+        <span class="q">About 1,700 in the UK and Spain.</span></div>
     </div>
     <div class="derived">Hourly cost: <b id="hourly">–</b></div>
   </div>
 
   <div class="block">
     <div class="bh"><h2>Package</h2><span class="tag">What they get</span></div>
-    <label class="check"><input type="checkbox" id="sharepoint" data-k="sharepoint"><span><b>Records in their SharePoint</b><small>Invoices, matching and history filed in their Microsoft 365, plus weekly Excel export.</small></span></label>
     <div class="grid">
-      <div class="f"><label for="training">Training sessions</label><input id="training" type="number" min="0" inputmode="numeric" data-k="training">
-        <span class="q">Remote sessions of about 90 minutes.</span></div>
-      <div class="f"><label for="term">Contract length</label>
-        <select id="term" data-k="term"><option value="1">Monthly</option><option value="12">12 months</option><option value="24">24 months</option></select></div>
-      <div class="f"><label for="discMonthly">Extra discount on monthly fee</label><div class="suffix"><input id="discMonthly" type="number" min="0" max="100" inputmode="decimal" data-k="discMonthly"><span>%</span></div></div>
+      <div class="f"><label for="allowance">Monthly invoice allowance</label><input id="allowance" type="number" min="0" step="50" inputmode="numeric" data-k="allowance" placeholder="Auto">
+        <span class="q" id="allowanceHint">Leave empty to round their volume up to the next 50.</span></div>
+      <div class="f"><label for="term">Initial term</label>
+        <select id="term" data-k="term"><option value="12">12 months</option><option value="24">24 months</option></select>
+        <span class="q">Renews for 12 months unless 3 months' notice is given.</span></div>
+      <div class="f"><label for="training">Training sessions in setup</label><input id="training" type="number" min="0" inputmode="numeric" data-k="training">
+        <span class="q">Remote, about 2 hours each.</span></div>
       <div class="f"><label for="discSetup">Discount on setup</label><div class="suffix"><input id="discSetup" type="number" min="0" max="100" inputmode="decimal" data-k="discSetup"><span>%</span></div></div>
+      <div class="f"><label for="discMonthly">Discount on monthly fee</label><div class="suffix"><input id="discMonthly" type="number" min="0" max="100" inputmode="decimal" data-k="discMonthly"><span>%</span></div>
+        <span class="q">For the whole term.</span></div>
     </div>
+    <label class="check"><input type="checkbox" id="eaOn" data-k="eaOn"><span><b>Early-adopter offer</b><small>Monthly fee reduced for the first 12 months in return for a testimonial, a reference call per quarter and use of their logo. Printed as a special term on the order form.</small></span></label>
+    <div class="f" id="eaPctRow"><label for="eaPct">Early-adopter reduction</label><div class="suffix"><input id="eaPct" type="number" min="0" max="100" inputmode="decimal" data-k="eaPct"><span>%</span></div></div>
   </div>
 
   <details>
@@ -240,36 +248,41 @@ details li span{color:var(--muted)}
         <div class="f"><label for="cutProb">Time saved per difference</label><div class="suffix"><input id="cutProb" type="number" min="0" max="100" inputmode="decimal" data-k="cutProb"><span>%</span></div>
           <span class="q">Query goes to the right person with the reason attached.</span></div>
       </div>
+      <p class="note" style="margin:0">Filing time drops to zero because records are filed in their SharePoint automatically.</p>
     </div>
   </details>
 
   <details id="orderDetails">
     <summary>Order form details</summary>
     <div class="in" style="display:grid;gap:12px">
-      <p class="note" style="margin:0">Fill in what you know. Anything left empty prints as a blank line for the client to complete by hand.</p>
+      <p class="note" style="margin:0">Fill in what you know. Anything left empty prints as a blank line for the client to complete.</p>
       <div class="grid">
         <div class="f"><label for="legalName">Registered company name</label><input id="legalName" data-k="legalName" autocomplete="off"></div>
-        <div class="f"><label for="taxId">Tax / VAT number</label><input id="taxId" data-k="taxId" autocomplete="off"></div>
+        <div class="f"><label for="companyNo">Company number</label><input id="companyNo" data-k="companyNo" autocomplete="off"></div>
+        <div class="f"><label for="taxId">VAT number</label><input id="taxId" data-k="taxId" autocomplete="off"></div>
+        <div class="f"><label for="region">Hosting region</label><input id="region" data-k="region" placeholder="United Kingdom (London)"></div>
       </div>
       <div class="f"><label for="address">Registered address</label><textarea id="address" data-k="address" style="min-height:64px"></textarea></div>
       <div class="grid">
-        <div class="f"><label for="billingEmail">Billing email</label><input id="billingEmail" data-k="billingEmail" type="email" autocomplete="off"></div>
-        <div class="f"><label for="poNumber">Purchase order no.</label><input id="poNumber" data-k="poNumber" autocomplete="off"></div>
-        <div class="f"><label for="signName">Who signs for the client</label><input id="signName" data-k="signName" autocomplete="off"></div>
-        <div class="f"><label for="signTitle">Their title</label><input id="signTitle" data-k="signTitle" autocomplete="off"></div>
+        <div class="f"><label for="billingContact">Billing contact (name, email)</label><input id="billingContact" data-k="billingContact" autocomplete="off"></div>
+        <div class="f"><label for="noticesEmail">Email for legal notices</label><input id="noticesEmail" type="email" data-k="noticesEmail" autocomplete="off"></div>
         <div class="f"><label for="startDate">Start date</label><input id="startDate" type="date" data-k="startDate"></div>
-        <div class="f"><label for="payMethod">Payment method</label>
-          <select id="payMethod" data-k="payMethod"><option value="">Use default</option><option>Bank transfer</option><option>Direct debit (SEPA)</option><option>Direct debit (Bacs)</option><option>Card</option></select></div>
+        <div class="f"><label for="goLive">Target go-live date</label><input id="goLive" type="date" data-k="goLive"></div>
+        <div class="f"><label for="signName">Who signs for the client</label><input id="signName" data-k="signName" autocomplete="off"></div>
+        <div class="f"><label for="signTitle">Their job title</label><input id="signTitle" data-k="signTitle" autocomplete="off"></div>
+        <div class="f"><label for="poNumber">Purchase order no.</label><input id="poNumber" data-k="poNumber" autocomplete="off"></div>
       </div>
+      <div class="f"><label for="specialTerms">Other special terms</label><textarea id="specialTerms" data-k="specialTerms" style="min-height:64px" placeholder="Optional. Anything agreed for this client only."></textarea>
+        <span class="q">Special terms take priority over the online documents. Keep them short and exact.</span></div>
     </div>
   </details>
 
   <div class="block">
-    <div class="bh"><h2>Notes</h2><span class="tag">Internal, not on the PDF</span></div>
+    <div class="bh"><h2>Notes</h2><span class="tag">Internal, not on the PDFs</span></div>
     <textarea id="notes" data-k="notes" placeholder="Pain points, who decides, next step, go-live month…"></textarea>
-    <div class="f"><label for="pdfMsg">Message on the PDF</label>
+    <div class="f"><label for="pdfMsg">Message on the quote</label>
       <textarea id="pdfMsg" data-k="pdfMsg" placeholder="Optional. For example: Thank you for your time on Tuesday. As agreed, this covers go-live before the 2027 season."></textarea></div>
-    <label class="check"><input type="checkbox" id="pdfSavings" data-k="pdfSavings"><span><b>Show savings estimate on the PDF</b><small>Hours, cost today and payback. Turn off if the client didn't share figures.</small></span></label>
+    <label class="check"><input type="checkbox" id="pdfSavings" data-k="pdfSavings"><span><b>Show savings estimate on the quote</b><small>Hours, cost today and payback. Turn off if the client didn't share figures.</small></span></label>
   </div>
 
   <!-- RESULT -->
@@ -285,12 +298,8 @@ details li span{color:var(--muted)}
       <div><span class="l">Pays back in</span><span class="v" id="rPayback">–</span><span class="s" id="rPaybackS"></span></div>
     </div>
     <div id="rChip"></div>
-    <div>
-      <div class="lines" id="rToday"></div>
-    </div>
-    <div>
-      <div class="lines" id="rLines"></div>
-    </div>
+    <div><div class="lines" id="rToday"></div></div>
+    <div><div class="lines" id="rLines"></div></div>
     <div class="foot">Estimate based on figures given in the meeting. Prices exclude VAT.</div>
   </div>
 
@@ -300,11 +309,12 @@ details li span{color:var(--muted)}
   <div class="docs">
     <div class="doc"><b>Quote</b><span>Prices, savings and what's included</span>
       <div class="row"><button class="btn primary small" id="pdfBtn">Download</button><button class="btn small" id="previewPdfBtn">Preview</button></div></div>
-    <div class="doc"><b>Order form</b><span>For the client to sign up</span>
-      <div class="row"><button class="btn primary small" id="orderBtn">Download</button><button class="btn small" id="previewOrderBtn">Preview</button></div></div>
+    <div class="doc"><b>Order form</b><span>The contract the client signs</span>
+      <div class="row"><button class="btn primary small" id="orderBtn">Download</button><button class="btn small" id="previewOrderBtn">Preview</button></div>
+      <span class="warnline" id="orderWarn" hidden></span></div>
   </div>
-  <div class="row" style="margin-bottom:8px"><button class="btn" id="sharePdfBtn" hidden>Share both PDFs</button>
   <div class="row" style="margin-bottom:8px">
+    <button class="btn" id="sharePdfBtn" hidden>Share both PDFs</button>
     <button class="btn" id="jsonBtn">Export JSON</button>
     <button class="btn" id="copyBtn">Copy summary</button>
     <button class="btn" id="newBtn">New quote</button>
@@ -320,9 +330,11 @@ details li span{color:var(--muted)}
       <li>How many invoices are waiting right now, and the oldest one? <span>The backlog is the pain in July.</span></li>
       <li>Have you paid a supplier twice, or paid more than the voucher, in the last year?</li>
       <li>How do suppliers chase you for payment, and how often?</li>
-      <li>Do you get credit notes, deposits or pro formas? <span>Not covered yet; note them.</span></li>
+      <li>Do you get credit notes, deposits or pro formas? <span>Credit notes count towards the allowance.</span></li>
       <li>Where are invoices stored today, and could an auditor find one in a minute?</li>
+      <li>Do you use Microsoft 365 with SharePoint and Teams? Who in IT would connect it?</li>
       <li>Do you hire temporary staff in peak season for the purchase ledger?</li>
+      <li>How many separate companies process supplier invoices?</li>
       <li>Who signs off on new tools, and what would they need to see?</li>
       <li>When would you want to go live? <span>Before the season is the usual answer.</span></li>
     </ul></div>
@@ -335,7 +347,7 @@ details li span{color:var(--muted)}
   <div id="savedList"></div>
   <div class="block">
     <div class="bh"><h2>Files</h2><span class="tag">Back up and move</span></div>
-    <p class="note" style="margin:0">Export all quotes and your price list as one JSON file. Import a backup or a single quote file on any device.</p>
+    <p class="note" style="margin:0">Export all quotes and your settings as one JSON file. Import a backup or a single quote file on any device.</p>
     <div class="row">
       <button class="btn small" id="exportAll">Export all (JSON)</button>
       <button class="btn small" id="importBtn">Import JSON file</button>
@@ -353,27 +365,28 @@ details li span{color:var(--muted)}
   </details>
 </section>
 
-<!-- PRICES VIEW -->
+<!-- SETTINGS VIEW -->
 <section id="v-prices" hidden>
-  <div class="bh" style="margin-bottom:6px"><h2>Price list</h2><span class="tag">Your defaults</span></div>
-  <p class="note" style="margin:0 0 14px">Draft figures. Change them to your real price list; every quote uses them. Amounts in the quote's currency.</p>
+  <div class="bh" style="margin-bottom:6px"><h2>Settings</h2><span class="tag">This device</span></div>
+  <p class="note" style="margin:0 0 14px">Draft prices. Change them to your real price list; every new quote uses them. Amounts are in the quote's currency.</p>
 
   <div class="block">
-    <div class="bh"><h2>Monthly</h2></div>
+    <div class="bh"><h2>Monthly subscription</h2></div>
+    <p class="note" style="margin:0">The monthly fee is worked out from the allowance: platform fee, plus each invoice above the included number at the tier price. Invoices above the allowance are charged at the tier price for the next invoice, plus any overage uplift.</p>
     <div class="grid">
       <div class="f"><label for="p_base">Platform fee</label><input id="p_base" type="number" step="5" data-p="base" inputmode="decimal"></div>
-      <div class="f"><label for="p_incl">Invoices included</label><input id="p_incl" type="number" data-p="incl" inputmode="numeric"></div>
+      <div class="f"><label for="p_incl">Invoices in the platform fee</label><input id="p_incl" type="number" data-p="incl" inputmode="numeric"></div>
       <div class="f"><label for="p_t1to">Tier 1 up to (invoices)</label><input id="p_t1to" type="number" data-p="t1to" inputmode="numeric"></div>
       <div class="f"><label for="p_t1">Tier 1 price per invoice</label><input id="p_t1" type="number" step="0.05" data-p="t1" inputmode="decimal"></div>
       <div class="f"><label for="p_t2to">Tier 2 up to (invoices)</label><input id="p_t2to" type="number" data-p="t2to" inputmode="numeric"></div>
       <div class="f"><label for="p_t2">Tier 2 price per invoice</label><input id="p_t2" type="number" step="0.05" data-p="t2" inputmode="decimal"></div>
       <div class="f"><label for="p_t3">Above tier 2, per invoice</label><input id="p_t3" type="number" step="0.05" data-p="t3" inputmode="decimal"></div>
-      <div class="f"><label for="p_sp">SharePoint records</label><input id="p_sp" type="number" step="5" data-p="sp" inputmode="decimal"></div>
-      <div class="f"><label for="p_usersIncl">Users included</label><input id="p_usersIncl" type="number" data-p="usersIncl" inputmode="numeric"></div>
-      <div class="f"><label for="p_user">Each extra user</label><input id="p_user" type="number" step="1" data-p="user" inputmode="decimal"></div>
-      <div class="f"><label for="p_d12">12-month discount %</label><input id="p_d12" type="number" data-p="d12" inputmode="decimal"></div>
-      <div class="f"><label for="p_d24">24-month discount %</label><input id="p_d24" type="number" data-p="d24" inputmode="decimal"></div>
+      <div class="f"><label for="p_overPrem">Overage uplift %</label><input id="p_overPrem" type="number" data-p="overPrem" inputmode="decimal"></div>
+      <div class="f"><label for="p_entity">Each extra company, per month</label><input id="p_entity" type="number" step="5" data-p="entity" inputmode="decimal"></div>
       <div class="f"><label for="p_min">Minimum monthly fee</label><input id="p_min" type="number" step="5" data-p="min" inputmode="decimal"></div>
+      <div class="f"><label for="p_d12">12-month term discount %</label><input id="p_d12" type="number" data-p="d12" inputmode="decimal"></div>
+      <div class="f"><label for="p_d24">24-month term discount %</label><input id="p_d24" type="number" data-p="d24" inputmode="decimal"></div>
+      <div class="f"><label for="p_eaPct">Default early-adopter reduction %</label><input id="p_eaPct" type="number" data-p="eaPct" inputmode="decimal"></div>
       <div class="f"><label for="p_valueMax">Fee should stay under this % of savings</label><input id="p_valueMax" type="number" data-p="valueMax" inputmode="decimal"></div>
     </div>
   </div>
@@ -381,38 +394,53 @@ details li span{color:var(--muted)}
   <div class="block">
     <div class="bh"><h2>Setup</h2></div>
     <div class="grid">
-      <div class="f"><label for="p_onb">Onboarding and configuration</label><input id="p_onb" type="number" step="50" data-p="onb" inputmode="decimal"></div>
+      <div class="f"><label for="p_onb">Dedicated instance and configuration</label><input id="p_onb" type="number" step="50" data-p="onb" inputmode="decimal"></div>
       <div class="f"><label for="p_rsTp">Connect TourPlan</label><input id="p_rsTp" type="number" step="50" data-p="rsTp" inputmode="decimal"></div>
       <div class="f"><label for="p_rsNi">Connect Nitro</label><input id="p_rsNi" type="number" step="50" data-p="rsNi" inputmode="decimal"></div>
       <div class="f"><label for="p_rsOt">Connect other system</label><input id="p_rsOt" type="number" step="50" data-p="rsOt" inputmode="decimal"></div>
-      <div class="f"><label for="p_spSetup">SharePoint setup</label><input id="p_spSetup" type="number" step="50" data-p="spSetup" inputmode="decimal"></div>
+      <div class="f"><label for="p_spSetup">SharePoint records setup</label><input id="p_spSetup" type="number" step="50" data-p="spSetup" inputmode="decimal"></div>
       <div class="f"><label for="p_supp">Supplier import per 100 suppliers</label><input id="p_supp" type="number" step="10" data-p="supp" inputmode="decimal"></div>
       <div class="f"><label for="p_stmt">Statement rule per supplier</label><input id="p_stmt" type="number" step="10" data-p="stmt" inputmode="decimal"></div>
-      <div class="f"><label for="p_train">Training session</label><input id="p_train" type="number" step="25" data-p="train" inputmode="decimal"></div>
       <div class="f"><label for="p_trainIncl">Training sessions included</label><input id="p_trainIncl" type="number" data-p="trainIncl" inputmode="numeric"></div>
+      <div class="f"><label for="p_train">Extra training session (2 hours)</label><input id="p_train" type="number" step="25" data-p="train" inputmode="decimal"></div>
     </div>
   </div>
+
   <div class="block">
-    <div class="bh"><h2>Your details on the PDF</h2></div>
+    <div class="bh"><h2>Your company</h2><span class="tag">Printed on the PDFs</span></div>
     <div class="grid">
-      <div class="f"><label for="s_name">Your name</label><input id="s_name" data-s="name" autocomplete="name"></div>
-      <div class="f"><label for="s_title">Role</label><input id="s_title" data-s="title"></div>
-      <div class="f"><label for="s_company">Company issuing the quote</label><input id="s_company" data-s="company"></div>
-      <div class="f"><label for="s_vat">VAT / tax number</label><input id="s_vat" data-s="vat"></div>
-      <div class="f"><label for="s_email">Email</label><input id="s_email" data-s="email" type="email" autocomplete="email"></div>
-      <div class="f"><label for="s_phone">Phone</label><input id="s_phone" data-s="phone" type="tel" autocomplete="tel"></div>
+      <div class="f"><label for="s_company">Registered company name</label><input id="s_company" data-s="company"></div>
+      <div class="f"><label for="s_companyNo">Company number</label><input id="s_companyNo" data-s="companyNo"></div>
+      <div class="f"><label for="s_vat">VAT number</label><input id="s_vat" data-s="vat"></div>
       <div class="f"><label for="s_web">Website</label><input id="s_web" data-s="web"></div>
-      <div class="f"><label for="s_valid">Quote valid for (days)</label><input id="s_valid" data-s="valid" type="number" inputmode="numeric"></div>
-      <div class="f"><label for="s_payTerms">Payment terms</label><input id="s_payTerms" data-s="payTerms"></div>
-      <div class="f"><label for="s_payMethod">Default payment method</label><input id="s_payMethod" data-s="payMethod"></div>
     </div>
-    <div class="f"><label for="s_address">Company address</label><textarea id="s_address" data-s="address" style="min-height:64px"></textarea></div>
-    <div class="f"><label for="s_terms">Terms on the quote</label><textarea id="s_terms" data-s="terms"></textarea>
-      <span class="q">One term per line.</span></div>
-    <div class="f"><label for="s_orderTerms">Terms on the order form</label><textarea id="s_orderTerms" data-s="orderTerms" style="min-height:160px"></textarea>
-      <span class="q">One term per line. Numbered on the PDF. Have these checked before first use.</span></div>
+    <div class="f"><label for="s_address">Registered office</label><textarea id="s_address" data-s="address" style="min-height:64px"></textarea></div>
+    <div class="grid">
+      <div class="f"><label for="s_email">Contact for agreements</label><input id="s_email" data-s="email" type="email"></div>
+      <div class="f"><label for="s_billing">Billing contact</label><input id="s_billing" data-s="billing" type="email"></div>
+      <div class="f"><label for="s_notices">Notices sent to</label><input id="s_notices" data-s="notices" type="email"></div>
+      <div class="f"><label for="s_region">Default hosting region</label><input id="s_region" data-s="region"></div>
+      <div class="f"><label for="s_name">Prepared by (optional)</label><input id="s_name" data-s="name">
+        <span class="q">Leave empty to show only the company.</span></div>
+      <div class="f"><label for="s_title">Their role</label><input id="s_title" data-s="title"></div>
+    </div>
   </div>
-  <div class="row"><button class="btn" id="resetPrices">Reset to draft prices</button></div>
+
+  <div class="block">
+    <div class="bh"><h2>Legal documents</h2><span class="tag">Accepted by reference</span></div>
+    <p class="note" style="margin:0">The order form lists these documents and their version. Update the version when you publish a new one on the website.</p>
+    <div class="grid">
+      <div class="f"><label for="s_docVersion">Version of the online documents</label><input id="s_docVersion" data-s="docVersion"></div>
+      <div class="f"><label for="s_legalBase">Address of the legal pages</label><input id="s_legalBase" data-s="legalBase"></div>
+      <div class="f"><label for="s_valid">Quote valid for (days)</label><input id="s_valid" data-s="valid" type="number" inputmode="numeric"></div>
+      <div class="f"><label for="s_payDays">Payment within (days)</label><input id="s_payDays" data-s="payDays" type="number" inputmode="numeric"></div>
+      <div class="f"><label for="s_noticeMonths">Notice before renewal (months)</label><input id="s_noticeMonths" data-s="noticeMonths" type="number" inputmode="numeric"></div>
+      <div class="f"><label for="s_seqNext">Next quote number</label><input id="s_seqNext" data-s="seqNext" type="number" inputmode="numeric">
+        <span class="q" id="seqHint"></span></div>
+    </div>
+    <div class="f"><label for="s_terms">Extra lines on the quote</label><textarea id="s_terms" data-s="terms" placeholder="Optional. One per line."></textarea></div>
+  </div>
+  <div class="row"><button class="btn" id="resetPrices">Reset prices to drafts</button></div>
 </section>
 </main>
 
@@ -430,309 +458,328 @@ details li span{color:var(--muted)}
 
 <script>
 (function(){
-const DEFAULT_PRICES={base:290,incl:150,t1to:500,t1:0.95,t2to:1500,t2:0.70,t3:0.45,sp:60,usersIncl:3,user:15,d12:5,d24:10,min:290,valueMax:35,
-  onb:900,rsTp:600,rsNi:600,rsOt:1500,spSetup:400,supp:100,stmt:150,train:250,trainIncl:1};
+/* ================= defaults ================= */
+const DEFAULT_PRICES={base:290,incl:150,t1to:500,t1:0.95,t2to:1500,t2:0.70,t3:0.45,overPrem:0,entity:100,min:290,d12:0,d24:10,eaPct:20,valueMax:35,
+  onb:900,rsTp:600,rsNi:600,rsOt:1500,spSetup:400,supp:100,stmt:150,trainIncl:2,train:250};
+const DEFAULT_SELLER={company:"Supvoices Ltd",companyNo:"",vat:"",web:"supvoices.com",address:"",
+  email:"hello@supvoices.com",billing:"accounts@supvoices.com",notices:"legal@supvoices.com",region:"United Kingdom (London)",
+  name:"",title:"",docVersion:"1.0",legalBase:"supvoices.com/legal",valid:30,payDays:30,noticeMonths:3,seqNext:1,terms:""};
 const today=()=>new Date().toISOString().slice(0,10);
-const BLANK={company:"",contact:"",qdate:today(),currency:"EUR",ressys:"tourplan",users:2,inv:0,peak:0,suppliers:0,statements:0,
-  minBase:8,minFile:2,pctProb:25,minProb:20,salary:32000,hoursYear:1700,sharepoint:true,training:2,term:"12",discMonthly:0,discSetup:0,
-  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true,legalName:"",address:"",taxId:"",billingEmail:"",poNumber:"",signName:"",signTitle:"",startDate:"",payMethod:""};
-const DEFAULT_SELLER={name:"Stan",title:"Founder",company:"SR Travel Tech Services",vat:"",email:"stan@srtraveltech.com",phone:"",web:"subvoices.com",valid:30,
-  terms:"Monthly fees are invoiced monthly in advance; setup is invoiced on signature.\nPayment within 14 days of invoice.\nInvoice volumes above the agreed tier are billed at the tier price for that month.\nPrices exclude VAT.",
-  address:"",payTerms:"14 days from invoice date",payMethod:"Bank transfer",
-  orderTerms:"This order form, together with the Supvoices terms of service and data processing terms, forms the agreement between the customer and the supplier.\nThe subscription starts on the start date and runs for the initial term. After that it continues month to month until either party gives 30 days' written notice.\nMonthly fees are based on the number of supplier invoices processed each calendar month, at the prices above.\nThe supplier may change prices after the initial term with 60 days' written notice.\nThe customer's invoice data stays the property of the customer and can be exported at any time.\nThe supplier processes personal data only to provide the service, in line with the GDPR."};
-let seller=Object.assign({},DEFAULT_SELLER,LS_get("svq-seller",{}));
-function LS_get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
-const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",contact:"Sample contact",inv:420,peak:900,suppliers:380,statements:4,users:3,minBase:9,pctProb:30,minProb:25,salary:34000,_sample:true});
+const BLANK={company:"",contact:"",contactEmail:"",qdate:today(),currency:"GBP",ressys:"tourplan",users:2,entities:1,
+  inv:0,peak:0,suppliers:0,statements:0,minBase:8,minFile:2,pctProb:25,minProb:20,salary:30000,hoursYear:1700,
+  allowance:"",term:"12",training:2,discSetup:0,discMonthly:0,eaOn:false,eaPct:"",
+  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true,
+  legalName:"",companyNo:"",taxId:"",region:"",address:"",billingContact:"",noticesEmail:"",startDate:"",goLive:"",signName:"",signTitle:"",poNumber:"",specialTerms:""};
+const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",contact:"Sample contact",inv:420,peak:900,suppliers:380,statements:4,users:3,minBase:9,pctProb:30,minProb:25,salary:32000,_sample:true});
 
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
 let prices=Object.assign({},DEFAULT_PRICES,LS.get("svq-prices",{}));
+let seller=Object.assign({},DEFAULT_SELLER,LS.get("svq-seller",{}));
+// settings from the first version that no longer apply
+if(seller.web==="subvoices.com") seller.web="supvoices.com";
 let quotes=LS.get("svq-quotes",[]);
 let state=(()=>{const d=LS.get("svq-draft",null);return d?Object.assign({},BLANK,d):Object.assign({},SAMPLE)})();
+if(state.term==="1") state.term="12";
 let editingId=state._id||null;
 
 const $=id=>document.getElementById(id);
 const num=v=>{const n=parseFloat(v);return isFinite(n)?n:0};
-const money=(v,c,dp)=>{try{return new Intl.NumberFormat("en-GB",{style:"currency",currency:c||state.currency||"EUR",maximumFractionDigits:dp??0,minimumFractionDigits:dp??0}).format(v)}catch(e){return Math.round(v)}};
+const money=(v,c,dp)=>{try{return new Intl.NumberFormat("en-GB",{style:"currency",currency:c||state.currency||"GBP",maximumFractionDigits:dp??0,minimumFractionDigits:dp??0}).format(v)}catch(e){return Math.round(v)}};
 const n0=v=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:0}).format(v);
 const n1=v=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:1}).format(v);
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const CURNAME={GBP:"pounds sterling",EUR:"euros",USD:"US dollars"};
+const RES={tourplan:"TourPlan",nitro:"Nitro",other:"Other system (to be agreed)",none:"None"};
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2000)}
 
-function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,1800)}
-
-/* ---------- calculation ---------- */
+/* ================= calculation ================= */
+function usageCost(n,p){
+  let over=Math.max(0,n-p.incl), cost=0; const parts=[];
+  const t1n=Math.max(0,Math.min(over,p.t1to-p.incl)); if(t1n){cost+=t1n*p.t1;parts.push([t1n,p.t1])} over-=t1n;
+  const t2n=Math.max(0,Math.min(over,p.t2to-Math.max(p.incl,p.t1to))); if(t2n){cost+=t2n*p.t2;parts.push([t2n,p.t2])} over-=t2n;
+  const t3n=Math.max(0,over); if(t3n){cost+=t3n*p.t3;parts.push([t3n,p.t3])}
+  return {cost,parts};
+}
 function calc(s,p){
-  const inv=num(s.inv), users=Math.max(1,num(s.users));
+  const inv=num(s.inv);
   const hourly=num(s.hoursYear)>0?num(s.salary)/num(s.hoursYear):0;
   const prob=num(s.pctProb)/100;
-  // today
+  // time today vs with Supvoices (records filed in SharePoint automatically, so filing time goes)
   const minToday=inv*(num(s.minBase)+num(s.minFile))+inv*prob*num(s.minProb);
   const hToday=minToday/60, costToday=hToday*hourly;
-  // with Supvoices
   const stp=Math.min(1,num(s.pctStp)/100);
-  const filing=s.sharepoint?0:num(s.minFile);
-  const minNew=inv*stp*num(s.minStp)
-    +inv*(1-stp)*(num(s.minBase)*(1-num(s.cutRest)/100))
-    +inv*filing
-    +inv*prob*num(s.minProb)*(1-num(s.cutProb)/100);
-  const hNew=minNew/60, costNew=hNew*hourly;
-  const hSaved=Math.max(0,hToday-hNew), saved=Math.max(0,costToday-costNew);
+  const minNew=inv*stp*num(s.minStp)+inv*(1-stp)*(num(s.minBase)*(1-num(s.cutRest)/100))+inv*prob*num(s.minProb)*(1-num(s.cutProb)/100);
+  const hNew=minNew/60;
+  const hSaved=Math.max(0,hToday-hNew), saved=Math.max(0,(hToday-hNew)*hourly);
   const fte=num(s.hoursYear)>0?hSaved/(num(s.hoursYear)/12):0;
 
-  // monthly fee
-  const lines=[];
-  lines.push(["Platform, "+n0(p.incl)+" invoices included",p.base]);
-  let over=Math.max(0,inv-p.incl), usage=0;
-  const t1n=Math.max(0,Math.min(over,p.t1to-p.incl)); usage+=t1n*p.t1; over-=t1n;
-  const t2n=Math.max(0,Math.min(over,p.t2to-p.t1to)); usage+=t2n*p.t2; over-=t2n;
-  const t3n=Math.max(0,over); usage+=t3n*p.t3;
-  if(t1n) lines.push([n0(t1n)+" invoices × "+money(p.t1,s.currency,2),t1n*p.t1,1]);
-  if(t2n) lines.push([n0(t2n)+" invoices × "+money(p.t2,s.currency,2),t2n*p.t2,1]);
-  if(t3n) lines.push([n0(t3n)+" invoices × "+money(p.t3,s.currency,2),t3n*p.t3,1]);
-  if(s.sharepoint) lines.push(["SharePoint records",p.sp]);
-  const xu=Math.max(0,users-p.usersIncl); if(xu) lines.push([xu+" extra users × "+money(p.user,s.currency),xu*p.user]);
+  // allowance and monthly fee
+  const autoAlw=Math.max(p.incl,Math.ceil(inv/50)*50);
+  const alw=num(s.allowance)>0?Math.round(num(s.allowance)):autoAlw;
+  const u=usageCost(alw,p);
+  const lines=[["Platform, "+n0(p.incl)+" invoices included",p.base]];
+  u.parts.forEach(([n,pr])=>lines.push([n0(n)+" invoices × "+money(pr,s.currency,2),n*pr,1]));
+  const extraEnt=Math.max(0,Math.round(num(s.entities)||1)-1);
+  if(extraEnt) lines.push([extraEnt+" extra "+(extraEnt>1?"companies":"company")+" × "+money(p.entity,s.currency),extraEnt*p.entity]);
   let gross=lines.reduce((a,l)=>a+l[1],0);
-  let minApplied=false; if(gross<p.min){lines.push(["Minimum monthly fee top-up",p.min-gross]);gross=p.min;minApplied=true}
-  const termPct=s.term==="24"?p.d24:s.term==="12"?p.d12:0;
+  if(gross<p.min){lines.push(["Minimum monthly fee top-up",p.min-gross]);gross=p.min}
+  const subGross=gross-extraEnt*p.entity;
+  const termPct=s.term==="24"?p.d24:p.d12;
   const discPct=Math.min(100,termPct+num(s.discMonthly));
-  const monthly=gross*(1-discPct/100);
+  const monthlyStd=gross*(1-discPct/100);
+  const eaPct=s.eaOn?Math.min(100,num(s.eaPct!==""&&s.eaPct!=null?s.eaPct:p.eaPct)):0;
+  const monthly=monthlyStd*(1-eaPct/100);
+  const marginal=alw<p.t1to?p.t1:alw<p.t2to?p.t2:p.t3;
+  const overPrice=Math.round(marginal*(1+num(p.overPrem)/100)*100)/100;
+  const expOverN=Math.max(0,inv-alw), expOver=expOverN*overPrice;
+  const peakOverN=Math.max(0,num(s.peak)-alw);
 
   // setup
-  const setup=[];
-  setup.push(["Onboarding and configuration",p.onb]);
-  const rs={tourplan:["Connect TourPlan",p.rsTp],nitro:["Connect Nitro",p.rsNi],other:["Connect reservation system",p.rsOt]}[s.ressys];
+  const setup=[["Dedicated instance and configuration",p.onb]];
+  const rs={tourplan:["Connect TourPlan",p.rsTp],nitro:["Connect Nitro",p.rsNi],other:["Connect your reservation system",p.rsOt]}[s.ressys];
   if(rs&&rs[1]) setup.push(rs);
-  if(s.sharepoint&&p.spSetup) setup.push(["SharePoint setup",p.spSetup]);
-  const blocks=Math.ceil(num(s.suppliers)/100); if(blocks&&p.supp) setup.push(["Import "+n0(num(s.suppliers))+" suppliers",blocks*p.supp]);
-  const st=num(s.statements); if(st&&p.stmt) setup.push([st+" statement supplier rules",st*p.stmt]);
-  const tr=Math.max(0,num(s.training)-p.trainIncl); if(tr) setup.push([tr+" training sessions"+(p.trainIncl?" (+"+p.trainIncl+" included)":""),tr*p.train]);
+  if(p.spSetup) setup.push(["SharePoint records setup",p.spSetup]);
+  const blocks=Math.ceil(num(s.suppliers)/100); if(blocks&&p.supp) setup.push(["Import of "+n0(num(s.suppliers))+" suppliers",blocks*p.supp]);
+  const st=num(s.statements); if(st&&p.stmt) setup.push(["Statement matching rules for "+st+" supplier"+(st>1?"s":""),st*p.stmt]);
+  const trainN=Math.max(0,Math.round(num(s.training)));
+  const tr=Math.max(0,trainN-p.trainIncl); if(tr) setup.push([tr+" extra training session"+(tr>1?"s":""),tr*p.train]);
   const setupGross=setup.reduce((a,l)=>a+l[1],0);
   const setupNet=setupGross*(1-Math.min(100,num(s.discSetup))/100);
 
-  const net=saved-monthly;
+  const net=saved-monthly-expOver;
   const payback=net>0?setupNet/net:Infinity;
-  const valuePct=saved>0?monthly/saved*100:Infinity;
-  const perInv=inv>0?monthly/inv:0;
-  const year1=monthly*12+setupNet;
-  return {hourly,hToday,costToday,hNew,hSaved,saved,fte,lines,gross,termPct,discPct,monthly,setup,setupGross,setupNet,net,payback,valuePct,perInv,year1,minApplied,inv};
+  const valuePct=saved>0?(monthly+expOver)/saved*100:Infinity;
+  const perInv=alw>0?monthly/alw:0;
+  const year1=(monthly+expOver)*12+setupNet;
+  return {hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
+    setup,setupGross,setupNet,trainN,net,payback,valuePct,perInv,year1,inv};
 }
 
-/* ---------- render ---------- */
+/* ================= numbering ================= */
+const pad3=n=>String(n).padStart(3,"0");
+function nextNo(){const y=new Date().getFullYear();return "SV-"+y+"-"+pad3(Math.max(1,Math.round(num(seller.seqNext))||1))}
+function quoteNo(q){return q.quoteNo||nextNo()}
+function assignNo(q){
+  if(q.quoteNo) return q.quoteNo;
+  q.quoteNo=nextNo(); seller.seqNext=(Math.round(num(seller.seqNext))||1)+1; LS.set("svq-seller",seller); fillSeller();
+  return q.quoteNo;
+}
+
+/* ================= render ================= */
 function render(){
   const r=calc(state,prices), c=state.currency;
   $("hourly").textContent=r.hourly?money(r.hourly,c,2):"–";
   $("rTitle").textContent=state.company||"Quote";
-  $("rWho").textContent=[state.contact,state.qdate&&new Date(state.qdate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),{1:"Monthly contract","12":"12-month contract","24":"24-month contract"}[state.term]].filter(Boolean).join(" · ");
+  $("rWho").textContent=[quoteNo(state)+(state.quoteNo?"":" (next)"),state.contact,state.qdate&&new Date(state.qdate+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),state.term+"-month term"].filter(Boolean).join(" · ");
   $("rMonthly").textContent=money(r.monthly,c);
-  $("rMonthlyS").textContent=r.inv?money(r.perInv,c,2)+" per invoice":"";
+  $("rMonthlyS").textContent=n0(r.alw)+" invoices included"+(r.eaPct?" · "+money(r.monthlyStd,c)+" from month 13":"");
   $("rSetup").textContent=money(r.setupNet,c);
   $("rSetupS").textContent=num(state.discSetup)?num(state.discSetup)+"% off "+money(r.setupGross,c):"";
   $("rSaved").textContent=money(r.saved,c);
   $("rSavedS").textContent=n0(r.hSaved)+" hours · "+n1(r.fte)+" FTE";
   $("rPayback").textContent=isFinite(r.payback)?(r.payback<1?"< 1 month":n1(r.payback)+" months"):"–";
-  $("rPaybackS").textContent=r.net>0?"Net "+money(r.net,c)+" a month after the fee":"Fee is higher than the saving";
+  $("rPaybackS").textContent=r.net>0?"Net "+money(r.net,c)+" a month after fees":"Fees are higher than the saving";
   let chip;
   if(!isFinite(r.valuePct)) chip='<span class="chip warn">Enter volume and time to check value</span>';
-  else if(r.valuePct<=prices.valueMax) chip='<span class="chip ok">Fee is '+n0(r.valuePct)+'% of the saving</span>';
-  else if(r.valuePct<=100) chip='<span class="chip warn">Fee is '+n0(r.valuePct)+'% of the saving, above your '+prices.valueMax+'% target</span>';
-  else chip='<span class="chip bad">Fee is more than the saving</span>';
+  else if(r.valuePct<=prices.valueMax) chip='<span class="chip ok">Fees are '+n0(r.valuePct)+'% of the saving</span>';
+  else if(r.valuePct<=100) chip='<span class="chip warn">Fees are '+n0(r.valuePct)+'% of the saving, above your '+prices.valueMax+'% target</span>';
+  else chip='<span class="chip bad">Fees are more than the saving</span>';
+  if(r.expOverN) chip+=' <span class="chip warn">Average volume is '+n0(r.expOverN)+' over the allowance</span>';
   $("rChip").innerHTML=chip;
 
   const L=(a,b,cls)=>'<div class="'+(cls||"")+'"><span>'+esc(a)+'</span><span>'+b+'</span></div>';
   $("rToday").innerHTML=
     L("Invoice work today",n0(r.hToday)+" h · "+money(r.costToday,c))+
     L("With Supvoices",n0(r.hNew)+" h · "+money(r.costToday-r.saved,c),"sub")+
-    (num(state.peak)?L("Busiest month, today",n0(r.hToday*num(state.peak)/Math.max(1,num(state.inv)))+" h","sub"):"");
+    (num(state.peak)?L("Busiest month",n0(num(state.peak))+" invoices"+(r.peakOverN?" · "+n0(r.peakOverN)+" over allowance":""),"sub"):"");
   let h=r.lines.map(l=>L(l[0],money(l[1],c,l[2]?2:0),"sub")).join("");
-  if(r.discPct) h+=L("Discount "+n1(r.discPct)+"%"+(r.termPct?" (incl. "+r.termPct+"% term)":""),"−"+money(r.gross-r.monthly,c),"sub");
+  if(r.discPct) h+=L("Discount "+n1(r.discPct)+"%"+(r.termPct?" (incl. "+r.termPct+"% for "+state.term+" months)":""),"−"+money(r.gross-r.monthlyStd,c),"sub");
+  if(r.eaPct) h+=L("Early-adopter "+n1(r.eaPct)+"%, first 12 months","−"+money(r.monthlyStd-r.monthly,c),"sub");
   h+=L("Monthly fee",money(r.monthly,c),"tot");
+  h+=L("Above "+n0(r.alw)+" invoices",money(r.overPrice,c,2)+" each","sub");
   h+=r.setup.map(l=>L(l[0],money(l[1],c),"sub")).join("");
   if(num(state.discSetup)) h+=L("Setup discount "+num(state.discSetup)+"%","−"+money(r.setupGross-r.setupNet,c),"sub");
   h+=L("Setup fee",money(r.setupNet,c),"tot");
   h+=L("First-year total",money(r.year1,c),"tot");
   $("rLines").innerHTML=h;
 
+  $("allowanceHint").textContent=num(state.allowance)>0?"Auto would be "+n0(r.autoAlw)+".":"Auto: "+n0(r.autoAlw)+" (volume rounded up to the next 50).";
+  $("eaPctRow").hidden=!state.eaOn;
+  $("eaPct").placeholder=String(prices.eaPct);
   $("bMonthly").textContent=money(r.monthly,c);
   $("bSetup").textContent=money(r.setupNet,c);
   $("bSaved").textContent=money(r.saved,c);
   $("sampleBanner").hidden=!state._sample;
   $("saveBtn").textContent=editingId?"Update saved quote":"Save quote";
+  const miss=[!seller.companyNo&&"company number",!seller.address&&"registered office"].filter(Boolean);
+  $("orderWarn").hidden=!miss.length;
+  $("orderWarn").textContent=miss.length?"Your "+miss.join(" and ")+" print as blanks. Add them in Settings.":"";
+  $("seqHint").textContent="Next: "+nextNo();
   return r;
 }
-function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
 
 function fillForm(){
   document.querySelectorAll("[data-k]").forEach(el=>{
-    const k=el.dataset.k, v=state[k];
+    const v=state[el.dataset.k];
     if(el.type==="checkbox") el.checked=!!v; else el.value=v??"";
   });
 }
 function fillPrices(){document.querySelectorAll("[data-p]").forEach(el=>el.value=prices[el.dataset.p])}
+function fillSeller(){document.querySelectorAll("[data-s]").forEach(el=>el.value=seller[el.dataset.s]??"")}
 
 document.querySelectorAll("[data-k]").forEach(el=>{
-  el.addEventListener("input",()=>{
+  const h=()=>{
     const k=el.dataset.k;
-    state[k]=el.type==="checkbox"?el.checked:(el.type==="number"?el.value:el.value);
-    if(state._sample && ["company","inv"].includes(k)) delete state._sample;
+    state[k]=el.type==="checkbox"?el.checked:el.value;
+    if(state._sample&&["company","inv"].includes(k)) delete state._sample;
     LS.set("svq-draft",state); render();
-  });
-  if(el.type==="checkbox"||el.tagName==="SELECT") el.addEventListener("change",()=>el.dispatchEvent(new Event("input")));
+  };
+  el.addEventListener("input",h);
+  if(el.type==="checkbox"||el.tagName==="SELECT") el.addEventListener("change",h);
 });
 document.querySelectorAll("[data-p]").forEach(el=>el.addEventListener("input",()=>{prices[el.dataset.p]=num(el.value);LS.set("svq-prices",prices);render()}));
+document.querySelectorAll("[data-s]").forEach(el=>el.addEventListener("input",()=>{seller[el.dataset.s]=el.value;LS.set("svq-seller",seller);render()}));
 
 $("resetPrices").onclick=function(){
-  if(this.dataset.armed){prices=Object.assign({},DEFAULT_PRICES);LS.set("svq-prices",prices);fillPrices();render();toast("Draft prices restored");this.textContent="Reset to draft prices";delete this.dataset.armed}
-  else{this.dataset.armed=1;this.textContent="Tap again to reset";setTimeout(()=>{this.textContent="Reset to draft prices";delete this.dataset.armed},3000)}
+  if(this.dataset.armed){prices=Object.assign({},DEFAULT_PRICES);LS.set("svq-prices",prices);fillPrices();render();toast("Draft prices restored");this.textContent="Reset prices to drafts";delete this.dataset.armed}
+  else{this.dataset.armed=1;this.textContent="Tap again to reset";setTimeout(()=>{this.textContent="Reset prices to drafts";delete this.dataset.armed},3000)}
 };
-
-$("clearSample").onclick=()=>{state=Object.assign({},BLANK,{qdate:today()});editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo(0,0)};
-$("newBtn").onclick=()=>{state=Object.assign({},BLANK,{qdate:today()});editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote")};
+const blankState=()=>Object.assign({},BLANK,{qdate:today()});
+$("clearSample").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo(0,0)};
+$("newBtn").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote")};
 $("toResult").onclick=()=>{show("quote");$("result").scrollIntoView({behavior:"smooth",block:"start"})};
 
-$("saveBtn").onclick=()=>{
+function persistCurrent(){
+  assignNo(state);
   const r=calc(state,prices);
-  if(!state.quoteNo) state.quoteNo=quoteNo(state);
-  const rec={...state,_id:editingId||("q"+Date.now()),_saved:new Date().toISOString(),_prices:{...prices},_monthly:r.monthly,_setup:r.setupNet,_saved_m:r.saved};
+  const rec={...state,_id:editingId||("q"+Date.now()),_savedAt:new Date().toISOString(),_prices:{...prices},_monthly:r.monthly,_setup:r.setupNet};
   delete rec._sample;
   const i=quotes.findIndex(q=>q._id===rec._id);
   if(i>=0) quotes[i]=rec; else quotes.unshift(rec);
   editingId=rec._id; state._id=rec._id; LS.set("svq-draft",state);
   const ok=LS.set("svq-quotes",quotes); renderSaved(); render();
-  toast(ok?(i>=0?"Quote updated":"Quote saved"):"Couldn't save on this device");
-};
+  return {ok,updated:i>=0};
+}
+$("saveBtn").onclick=()=>{const {ok,updated}=persistCurrent();toast(ok?(updated?"Quote updated":"Quote saved as "+state.quoteNo):"Couldn't save on this device")};
 
 function summaryText(s,r){
   const c=s.currency;
   return [
-    "Supvoices quote — "+(s.company||"Client"),
+    "Supvoices quote "+quoteNo(s)+" — "+(s.company||"Client"),
     s.contact?("Contact: "+s.contact):null,
-    "Date: "+s.qdate,
-    "",
-    "Monthly fee: "+money(r.monthly,c)+" ("+money(r.perInv,c,2)+" per invoice, "+n0(num(s.inv))+" invoices/month)",
+    "Date: "+s.qdate,"",
+    "Monthly fee: "+money(r.monthly,c)+" (includes "+n0(r.alw)+" invoices a month)"+(r.eaPct?", "+money(r.monthlyStd,c)+" from month 13":""),
+    "Invoices above the allowance: "+money(r.overPrice,c,2)+" each",
     "Setup (one-off): "+money(r.setupNet,c),
     "First-year total: "+money(r.year1,c),
-    "Contract: "+({1:"monthly","12":"12 months","24":"24 months"}[s.term]),
-    "",
+    "Initial term: "+s.term+" months","",
     "Invoice work today: "+n0(r.hToday)+" h/month ("+money(r.costToday,c)+")",
     "Estimated saving: "+n0(r.hSaved)+" h/month ("+money(r.saved,c)+", "+n1(r.fte)+" FTE)",
-    isFinite(r.payback)?"Setup pays back in "+n1(r.payback)+" months":null,
-    "",
+    isFinite(r.payback)?"Setup pays back in "+n1(r.payback)+" months":null,"",
     "Estimate based on figures given in the meeting. Prices exclude VAT."
   ].filter(x=>x!==null).join("\n");
 }
 async function copy(text,okMsg,fallbackEl){
   try{await navigator.clipboard.writeText(text);toast(okMsg)}
-  catch(e){ if(fallbackEl){fallbackEl.value=text;fallbackEl.focus();fallbackEl.select();toast("Selected. Copy it from the box")}else toast("Copy isn't allowed here") }
+  catch(e){if(fallbackEl){fallbackEl.value=text;fallbackEl.focus();fallbackEl.select();toast("Selected. Copy it from the box")}else toast("Copy isn't allowed here")}
 }
-$("copyBtn").onclick=()=>copy(summaryText(state,calc(state,prices)),"Summary copied",$("notes").value?null:null);
+$("copyBtn").onclick=()=>copy(summaryText(state,calc(state,prices)),"Summary copied");
 
-/* ---------- saved list ---------- */
+/* ================= saved list ================= */
+const pricesFor=q=>Object.assign({},DEFAULT_PRICES,q._prices||prices);
+const normalise=q=>{const x=Object.assign({},BLANK,q);if(x.term==="1")x.term="12";return x};
 function renderSaved(){
   $("savedCount").textContent=quotes.length?"("+quotes.length+")":"";
   const box=$("savedList");
   if(!quotes.length){box.innerHTML='<div class="empty">No saved quotes yet.<br>Fill in a quote and tap <b>Save quote</b>.</div>';return}
-  box.innerHTML=quotes.map(q=>{
-    const r=calc(q,Object.assign({},DEFAULT_PRICES,q._prices||prices));
-    return '<div class="qitem" data-id="'+q._id+'"><div class="t"><h3>'+esc(q.company||"Untitled")+'</h3><span class="m">'+esc(q.qdate||"")+'</span></div>'+
-      '<div class="m">Monthly <b>'+money(r.monthly,q.currency)+'</b> · Setup <b>'+money(r.setupNet,q.currency)+'</b> · Saves <b>'+money(r.saved,q.currency)+'</b>/mo · '+n0(num(q.inv))+' inv</div>'+
+  box.innerHTML=quotes.map(q0=>{
+    const q=normalise(q0), r=calc(q,pricesFor(q));
+    return '<div class="qitem" data-id="'+esc(q._id)+'"><div class="t"><h3>'+esc(q.company||"Untitled")+'</h3><span class="m">'+esc(q.quoteNo||"")+" · "+esc(q.qdate||"")+'</span></div>'+
+      '<div class="m">Monthly <b>'+money(r.monthly,q.currency)+'</b> · Setup <b>'+money(r.setupNet,q.currency)+'</b> · '+n0(r.alw)+' invoices · Saves <b>'+money(r.saved,q.currency)+'</b>/mo</div>'+
       (q.notes?'<div class="m">'+esc(q.notes.slice(0,120))+(q.notes.length>120?"…":"")+'</div>':"")+
       '<div class="row"><button class="btn small" data-a="open">Open</button><button class="btn small" data-a="pdf">Quote PDF</button><button class="btn small" data-a="order">Order form</button><button class="btn small" data-a="json">JSON</button><button class="btn small" data-a="dup">Duplicate</button><button class="btn small" data-a="copy">Copy summary</button><button class="btn small danger" data-a="del">Delete</button></div></div>';
   }).join("");
 }
 $("savedList").addEventListener("click",e=>{
   const b=e.target.closest("button[data-a]"); if(!b) return;
-  const id=b.closest(".qitem").dataset.id, q=quotes.find(x=>x._id===id); if(!q) return;
-  const a=b.dataset.a;
+  const id=b.closest(".qitem").dataset.id, qi=quotes.findIndex(x=>x._id===id); if(qi<0) return;
+  const q=normalise(quotes[qi]), a=b.dataset.a;
   if(a==="open"||a==="dup"){
-    state={...BLANK,...q}; delete state._prices;
-    if(a==="dup"){delete state._id;state.company=(q.company||"")+" (copy)";state.qdate=today();editingId=null}else editingId=q._id;
-    if(q._prices && a==="open" && JSON.stringify(q._prices)!==JSON.stringify(prices)) toast("Opened with today's price list");
+    state={...q}; delete state._prices;
+    if(a==="dup"){delete state._id;delete state.quoteNo;state.company=(q.company||"")+" (copy)";state.qdate=today();editingId=null}else editingId=q._id;
     LS.set("svq-draft",state); fillForm(); render(); show("quote"); window.scrollTo(0,0);
-  } else if(a==="pdf"){ downloadPdf(q, pricesFor(q),"quote") }
-  else if(a==="order"){ downloadPdf(q, pricesFor(q),"order") }
-  else if(a==="json"){ exportQuoteJson(q) }
-  else if(a==="copy"){ copy(summaryText(q,calc(q,Object.assign({},DEFAULT_PRICES,q._prices||prices))),"Summary copied") }
+    if(a==="open") toast("Opened with today's prices");
+  } else if(a==="pdf"||a==="order"){
+    if(!q.quoteNo){assignNo(q);quotes[qi].quoteNo=q.quoteNo;LS.set("svq-quotes",quotes);renderSaved()}
+    downloadPdf(q,pricesFor(q),a==="pdf"?"quote":"order");
+  }
+  else if(a==="json"){exportQuoteJson(q)}
+  else if(a==="copy"){copy(summaryText(q,calc(q,pricesFor(q))),"Summary copied")}
   else if(a==="del"){
-    if(b.dataset.armed){quotes=quotes.filter(x=>x._id!==id);LS.set("svq-quotes",quotes);if(editingId===id){editingId=null;delete state._id}renderSaved();render();toast("Quote deleted")}
+    if(b.dataset.armed){quotes.splice(qi,1);LS.set("svq-quotes",quotes);if(editingId===id){editingId=null;delete state._id}renderSaved();render();toast("Quote deleted")}
     else{b.dataset.armed=1;b.textContent="Tap to confirm";setTimeout(()=>{if(b.isConnected){b.textContent="Delete";delete b.dataset.armed}},3000)}
   }
 });
-$("copyBackup").onclick=()=>copy(JSON.stringify({v:1,prices,quotes}),"Backup copied",$("restoreText"));
-$("restoreBtn").onclick=()=>{
-  try{const d=JSON.parse($("restoreText").value);
-    if(!d||!Array.isArray(d.quotes)) throw 0;
-    const ids=new Set(quotes.map(q=>q._id)); let added=0;
-    d.quotes.forEach(q=>{if(q&&q._id&&!ids.has(q._id)){quotes.push(q);added++}});
-    if(d.prices) {prices=Object.assign({},DEFAULT_PRICES,d.prices);LS.set("svq-prices",prices);fillPrices()}
-    LS.set("svq-quotes",quotes);renderSaved();render();$("restoreText").value="";toast(added+" quotes restored");
-  }catch(e){toast("That isn't a Supvoices backup. Paste the full text you copied.")}
-};
 
-/* ---------- views ---------- */
-function show(v){
-  ["quote","saved","prices"].forEach(x=>$("v-"+x).hidden=x!==v);
-  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===v?"page":"false"));
-  if(location.hash!=="#"+v) history.replaceState(null,"","#"+v);
-}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
-window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
-
-/* ---------- seller details ---------- */
-document.querySelectorAll("[data-s]").forEach(el=>el.addEventListener("input",()=>{seller[el.dataset.s]=el.value;LS.set("svq-seller",seller)}));
-function fillSeller(){document.querySelectorAll("[data-s]").forEach(el=>el.value=seller[el.dataset.s]??"")}
-function pricesFor(q){return Object.assign({},DEFAULT_PRICES,q._prices||prices)}
-
-/* ---------- files ---------- */
+/* ================= files ================= */
 const slug=s=>(String(s||"client").normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase()||"client");
 function saveBlob(blob,name){
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),4000);
 }
-function quoteNo(q){
-  if(q.quoteNo) return q.quoteNo;
-  const d=(q.qdate||today()).replace(/-/g,"").slice(2);
-  return "SQ-"+d+"-"+(slug(q.company).replace(/-/g,"").slice(0,4).toUpperCase()||"XXXX");
-}
 function exportQuoteJson(q){
-  const r=calc(q,pricesFor(q));
-  const data={type:"supvoices-quote",version:1,exported:new Date().toISOString(),quote:{...q,_prices:pricesFor(q)},
-    result:{monthlyFee:+r.monthly.toFixed(2),setupFee:+r.setupNet.toFixed(2),firstYearTotal:+r.year1.toFixed(2),
-      savedPerMonth:+r.saved.toFixed(2),hoursSavedPerMonth:+r.hSaved.toFixed(1),paybackMonths:isFinite(r.payback)?+r.payback.toFixed(1):null,currency:q.currency}};
+  const p=pricesFor(q), r=calc(q,p);
+  const data={type:"supvoices-quote",version:2,exported:new Date().toISOString(),quote:{...q,_prices:p},
+    result:{quoteNo:quoteNo(q),currency:q.currency,allowance:r.alw,monthlyFee:+r.monthly.toFixed(2),monthlyFeeAfterOffer:+r.monthlyStd.toFixed(2),
+      overagePerInvoice:r.overPrice,setupFee:+r.setupNet.toFixed(2),firstYearTotal:+r.year1.toFixed(2),
+      savedPerMonth:+r.saved.toFixed(2),hoursSavedPerMonth:+r.hSaved.toFixed(1),paybackMonths:isFinite(r.payback)?+r.payback.toFixed(1):null}};
   delete data.quote._sample;
   saveBlob(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),"supvoices-quote-"+slug(q.company)+"-"+(q.qdate||today())+".json");
   toast("JSON exported");
 }
 $("jsonBtn").onclick=()=>exportQuoteJson(state);
 $("exportAll").onclick=()=>{
-  saveBlob(new Blob([JSON.stringify({type:"supvoices-backup",version:1,exported:new Date().toISOString(),prices,seller,quotes},null,2)],{type:"application/json"}),"supvoices-quotes-backup-"+today()+".json");
+  saveBlob(new Blob([JSON.stringify({type:"supvoices-backup",version:2,exported:new Date().toISOString(),prices,seller,quotes},null,2)],{type:"application/json"}),"supvoices-quotes-backup-"+today()+".json");
   toast("Backup exported");
 };
+function importData(d){
+  if(d&&d.type==="supvoices-quote"&&d.quote){
+    const q={...d.quote}; if(!q._id) q._id="q"+Date.now();
+    const i=quotes.findIndex(x=>x._id===q._id); if(i>=0) quotes[i]=q; else quotes.unshift(q);
+    LS.set("svq-quotes",quotes);
+    state=normalise(q); delete state._prices; editingId=q._id; LS.set("svq-draft",state);
+    fillForm(); renderSaved(); render(); show("quote"); window.scrollTo(0,0);
+    return "Quote imported: "+(q.company||"Untitled");
+  }
+  if(d&&Array.isArray(d.quotes)){
+    const ids=new Set(quotes.map(q=>q._id)); let added=0;
+    d.quotes.forEach(q=>{if(q&&q._id&&!ids.has(q._id)){quotes.push(q);added++}});
+    if(d.prices){prices=Object.assign({},DEFAULT_PRICES,d.prices);LS.set("svq-prices",prices);fillPrices()}
+    if(d.seller){seller=Object.assign({},DEFAULT_SELLER,d.seller);LS.set("svq-seller",seller);fillSeller()}
+    LS.set("svq-quotes",quotes); renderSaved(); render();
+    return added+" quotes imported";
+  }
+  throw new Error("not ours");
+}
 $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=async e=>{
   const f=e.target.files[0]; e.target.value=""; if(!f) return;
-  try{
-    const d=JSON.parse(await f.text());
-    if(d.type==="supvoices-quote"&&d.quote){
-      const q={...d.quote}; if(!q._id) q._id="q"+Date.now();
-      const i=quotes.findIndex(x=>x._id===q._id); if(i>=0) quotes[i]=q; else quotes.unshift(q);
-      LS.set("svq-quotes",quotes);
-      state={...BLANK,...q}; delete state._prices; editingId=q._id; LS.set("svq-draft",state);
-      fillForm(); renderSaved(); render(); show("quote"); window.scrollTo(0,0);
-      toast("Quote imported: "+(q.company||"Untitled"));
-    } else if(Array.isArray(d.quotes)){
-      const ids=new Set(quotes.map(q=>q._id)); let added=0;
-      d.quotes.forEach(q=>{if(q&&q._id&&!ids.has(q._id)){quotes.push(q);added++}});
-      if(d.prices){prices=Object.assign({},DEFAULT_PRICES,d.prices);LS.set("svq-prices",prices);fillPrices()}
-      if(d.seller){seller=Object.assign({},DEFAULT_SELLER,d.seller);LS.set("svq-seller",seller);fillSeller()}
-      LS.set("svq-quotes",quotes); renderSaved(); render(); toast(added+" quotes imported");
-    } else throw 0;
-  }catch(err){toast("That file isn't a Supvoices quote or backup")}
+  try{toast(importData(JSON.parse(await f.text())))}catch(err){toast("That file isn't a Supvoices quote or backup")}
+};
+$("copyBackup").onclick=()=>copy(JSON.stringify({type:"supvoices-backup",version:2,prices,seller,quotes}),"Backup copied",$("restoreText"));
+$("restoreBtn").onclick=()=>{
+  try{toast(importData(JSON.parse($("restoreText").value)));$("restoreText").value=""}
+  catch(e){toast("That isn't a Supvoices backup. Paste the full text you copied.")}
 };
 
-/* ---------- PDF ---------- */
-const PW=210, PL=18, PR=PW-18, PCW=PR-PL;
+/* ================= PDF shared ================= */
+const PW=210, PL=18, PR=PW-18, PCW=PR-PL, PBOTTOM=276;
 const PC={NAVY:[20,35,60],GREEN:[43,182,115],INK:[20,35,60],MUTED:[96,110,132],LINE:[214,222,232],TINT:[241,244,248],PALE:[185,197,214]};
 const fmtDate=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+const dateOf=s=>s?new Date(s+"T12:00:00"):null;
+const pdfText=s=>String(s).replace(/−/g,"-").replace(/[  ]/g," ").replace(/[‘’]/g,"'").replace(/[“”]/g,'"');
 function pdfHeader(doc,label,no,dateTxt){
   const L=PL,R=PR;
   doc.setFillColor(...PC.NAVY); doc.rect(0,0,PW,40,"F");
@@ -740,283 +787,327 @@ function pdfHeader(doc,label,no,dateTxt){
   doc.line(L+2.5,16.5,L+8.5,16.5); doc.line(L+2.5,19,L+6,19);
   doc.setDrawColor(...PC.GREEN); doc.setLineWidth(1); doc.line(L+5.5,21.3,L+6.9,22.6); doc.line(L+6.9,22.6,L+9.7,19.4);
   doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.text("Supvoices",L+15,21.5);
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...PC.PALE); doc.text("Supplier invoice matching for tour operators",L+15,27);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...PC.PALE); doc.text("The purchase ledger, without the chasing.",L+15,27);
   doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(255,255,255); doc.text(label,R,17,{align:"right"});
   doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(...PC.PALE);
   doc.text(no,R,23,{align:"right"}); doc.text(dateTxt,R,28,{align:"right"});
 }
 function pdfFooter(doc,no){
   const pages=doc.getNumberOfPages();
+  const left=[seller.company,seller.companyNo&&("Company no. "+seller.companyNo),seller.vat&&("VAT "+seller.vat),seller.web].filter(Boolean).join("   ·   ");
   for(let i=1;i<=pages;i++){
     doc.setPage(i);
     doc.setDrawColor(...PC.LINE); doc.setLineWidth(0.2); doc.line(PL,284,PR,284);
     doc.setFontSize(7.5); doc.setTextColor(...PC.MUTED); doc.setFont("helvetica","normal");
-    doc.text([seller.company,seller.vat&&("VAT "+seller.vat),seller.email,seller.web].filter(Boolean).join("   ·   "),PL,289);
+    doc.text(pdfText(left),PL,289);
     doc.text(no+"   ·   Page "+i+" of "+pages,PR,289,{align:"right"});
   }
 }
-function orderNo(q){return quoteNo(q).replace(/^SQ-/,"SO-")}
+function pdfKit(doc){
+  const k={y:52};
+  k.need=h=>{if(k.y+h>PBOTTOM){doc.addPage();k.y=22}};
+  k.h2=(t,need)=>{k.need(need||30);doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...PC.INK);doc.text(pdfText(t),PL,k.y);k.y+=3;doc.setFont("helvetica","normal")};
+  k.para=(t,o={})=>{
+    doc.setFont("helvetica",o.bold?"bold":"normal"); doc.setFontSize(o.size||9.5); doc.setTextColor(...(o.color||PC.INK));
+    const lh=(o.size||9.5)*0.47;
+    const ls=doc.splitTextToSize(pdfText(t),o.width||PCW);
+    ls.forEach(line=>{k.need(lh+1);doc.text(line,o.x||PL,k.y);k.y+=lh});
+    k.y+=o.after??2.5; doc.setFont("helvetica","normal");
+  };
+  k.list=(items,o={})=>{
+    doc.setFontSize(o.size||9.5);
+    const lh=(o.size||9.5)*0.47;
+    items.forEach((t,i)=>{
+      const ls=doc.splitTextToSize(pdfText(t),PCW-7); k.need(ls.length*lh+1.5);
+      doc.setTextColor(...(o.color||PC.INK));
+      if(o.numbered){doc.text((i+1)+".",PL,k.y)}else{doc.setFillColor(...PC.GREEN);doc.circle(PL+1.3,k.y-1.2,1,"F")}
+      doc.text(ls,PL+6,k.y); k.y+=ls.length*lh+1.6;
+    });
+    k.y+=2;
+  };
+  k.table=(opts)=>{
+    doc.autoTable(Object.assign({margin:{left:PL,right:PL,top:22,bottom:21},theme:"plain",
+      styles:{font:"helvetica",fontSize:9.3,textColor:PC.INK,cellPadding:{top:2.2,bottom:2.2,left:2,right:2},lineColor:PC.LINE,overflow:"linebreak",valign:"top"},
+      headStyles:{fontStyle:"bold",fontSize:7.5,textColor:PC.MUTED,lineWidth:{bottom:0.3}},
+      bodyStyles:{lineWidth:{bottom:0.12}},
+      didParseCell:d=>{
+        if(typeof d.cell.raw==="string") d.cell.text=doc.splitTextToSize(pdfText(d.cell.raw),9999);
+        if(d.row.raw&&d.row.raw._total&&d.section==="body"){d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=PC.TINT;d.cell.styles.lineWidth=0;d.cell.styles.textColor=PC.INK}
+      }},opts,{startY:k.y}));
+    k.y=doc.lastAutoTable.finalY+8;
+  };
+  return k;
+}
+const tot=(...cells)=>{cells._total=true;return cells};
+const BL={content:"",styles:{minCellHeight:9}};
+const val=v=>(v!=null&&String(v).trim())?String(v).trim():{...BL};
+const docsList=()=>{const b=(seller.legalBase||"supvoices.com/legal").replace(/\/$/,"");const v=seller.docVersion||"1.0";return [
+  ["Supvoices Subscription Terms",v,b+"/terms"],
+  ["Supvoices Data Processing Agreement (including the Sub-processor list)",v,b+"/dpa"],
+  ["Supvoices Service Levels and Support",v,b+"/service-levels"],
+  ["Supvoices Acceptable Use Policy",v,b+"/acceptable-use"]]};
+const earlyAdopterTerm=(q,r)=>"Early-adopter offer: the Monthly subscription fee is reduced by "+n1(r.eaPct)+"% for the first 12 months in return for the Customer agreeing, where satisfied with the Service, to (a) a short written testimonial, (b) one reference call per quarter with prospective customers, and (c) use of its name and logo on "+(seller.web||"supvoices.com")+", each subject to the Customer's approval of the final wording. These commitments can be withdrawn at any time; if withdrawn, the reduction ends from the next invoice.";
+
+/* ================= quote PDF ================= */
 function buildPdf(q,p){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:"a4"});
-  const r=calc(q,p), c=q.currency;
-  const m=(v,dp)=>money(v,c,dp).replace(/−/g,"-").replace(/[  ]/g," ");
-  const W=210, L=18, R=W-18, CW=R-L;
-  const NAVY=[20,35,60], NAVY2=[36,57,94], GREEN=[43,182,115], INK=[20,35,60], MUTED=[96,110,132], LINE=[214,222,232], TINT=[241,244,248];
+  const r=calc(q,p), c=q.currency, L=PL, R=PR, CW=PCW, {INK,MUTED,NAVY,TINT}=PC;
+  const m=(v,dp)=>pdfText(money(v,c,dp));
   const no=quoteNo(q);
-  const qd=q.qdate?new Date(q.qdate+"T12:00:00"):new Date();
-  const fmtD=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  const qd=dateOf(q.qdate)||new Date();
   const valid=new Date(qd.getTime()+num(seller.valid||30)*864e5);
-  const termTxt={1:"Monthly, cancel with 30 days' notice","12":"12 months","24":"24 months"}[q.term];
-
-  pdfHeader(doc,"QUOTE",no,fmtD(qd));
+  const k=pdfKit(doc);
+  pdfHeader(doc,"QUOTE",no,fmtDate(qd));
 
   // parties
-  let y=52;
-  const col2=L+CW/2+4;
+  let y=52; const col2=L+CW/2+4;
   doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.setFont("helvetica","bold");
   doc.text("PREPARED FOR",L,y); doc.text("PREPARED BY",col2,y);
-  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...INK);
-  const cl=doc.splitTextToSize(q.company||"Client",CW/2-6); doc.text(cl,L,y+6);
-  doc.text(doc.splitTextToSize(seller.name||"",CW/2-6),col2,y+6);
+  doc.setFontSize(12); doc.setTextColor(...INK);
+  const cl=doc.splitTextToSize(pdfText(q.legalName||q.company||"Client"),CW/2-6); doc.text(cl,L,y+6);
+  doc.text(pdfText(seller.company||"Supvoices"),col2,y+6);
   doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
-  let yl=y+6+cl.length*5; if(q.contact){doc.text(doc.splitTextToSize(q.contact,CW/2-6),L,yl);yl+=5}
-  let yr=y+11; [seller.title,seller.company,seller.email,seller.phone].filter(Boolean).forEach(t=>{doc.text(t,col2,yr);yr+=4.6});
-  y=Math.max(yl,yr)+4;
-  doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text("Valid until "+fmtD(valid)+"   ·   Contract: "+termTxt+"   ·   Prices in "+c+", excluding VAT",L,y);
-  y+=7;
+  let yl=y+6+cl.length*5; [q.contact,q.contactEmail].filter(Boolean).forEach(t=>{doc.text(pdfText(t),L,yl);yl+=4.6});
+  let yr=y+11; [seller.name&&(seller.name+(seller.title?", "+seller.title:"")),seller.email,seller.web].filter(Boolean).forEach(t=>{doc.text(pdfText(t),col2,yr);yr+=4.6});
+  k.y=Math.max(yl,yr)+3;
+  k.para("Valid until "+fmtDate(valid)+"   ·   Initial term: "+q.term+" months   ·   Prices in "+c+", excluding VAT",{size:9,color:MUTED,after:4});
+  if(q.pdfMsg&&q.pdfMsg.trim()) k.para(q.pdfMsg.trim(),{size:10,after:5});
 
-  // message
-  if(q.pdfMsg&&q.pdfMsg.trim()){
-    doc.setFontSize(10); doc.setTextColor(...INK);
-    const ml=doc.splitTextToSize(q.pdfMsg.trim(),CW); doc.text(ml,L,y+2); y+=ml.length*4.6+5;
-  }
-
-  // summary tiles
-  const tiles=[["Monthly fee",m(r.monthly),r.inv?m(r.perInv,2)+" per invoice":""],["Setup, one-off",m(r.setupNet),num(q.discSetup)?num(q.discSetup)+"% discount applied":"Paid once at start"],["First-year total",m(r.year1),"12 months + setup"]];
+  // tiles
+  y=k.y;
+  const tiles=[["Monthly fee",m(r.monthly),"Includes "+n0(r.alw)+" invoices a month"],["Setup, one-off",m(r.setupNet),num(q.discSetup)?num(q.discSetup)+"% discount applied":"Invoiced on signature"],["First-year total",m(r.year1),"12 months + setup"]];
   const tw=(CW-8)/3;
   tiles.forEach((t,i)=>{
     const x=L+i*(tw+4);
     doc.setFillColor(...(i===0?NAVY:TINT)); doc.roundedRect(x,y,tw,26,2,2,"F");
-    doc.setFontSize(7.5); doc.setFont("helvetica","bold"); doc.setTextColor(...(i===0?[185,197,214]:MUTED)); doc.text(t[0].toUpperCase(),x+5,y+7);
+    doc.setFontSize(7.5); doc.setFont("helvetica","bold"); doc.setTextColor(...(i===0?PC.PALE:MUTED)); doc.text(t[0].toUpperCase(),x+5,y+7);
     doc.setFontSize(17); doc.setTextColor(...(i===0?[255,255,255]:INK)); doc.text(t[1],x+5,y+16);
-    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...(i===0?[185,197,214]:MUTED)); doc.text(t[2],x+5,y+21.5);
+    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...(i===0?PC.PALE:MUTED)); doc.text(t[2],x+5,y+21.5);
   });
-  y+=34;
-
-  const sectionTitle=(t,need)=>{if(y>277-(need||40)){doc.addPage();y=22}doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...INK);doc.text(t,L,y);y+=3;doc.setFont("helvetica","normal")};
-  const tableBase={margin:{left:L,right:L},theme:"plain",styles:{font:"helvetica",fontSize:9.5,textColor:INK,cellPadding:{top:2.4,bottom:2.4,left:2,right:2},lineColor:LINE},
-    headStyles:{fontStyle:"bold",fontSize:7.5,textColor:MUTED,lineWidth:{bottom:0.3}},columnStyles:{1:{halign:"right",cellWidth:40}},
-    bodyStyles:{lineWidth:{bottom:0.1}},
-    didParseCell:d=>{if(d.row.raw&&d.row.raw._total){d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=TINT;d.cell.styles.lineWidth=0}}};
-  const totalRow=(a,b)=>{const row=[a,b];row._total=true;return row};
+  k.y=y+34;
 
   // savings
-  if(q.pdfSavings!==false && r.inv>0 && r.hourly>0){
-    sectionTitle("What this means for your team",68);
-    doc.autoTable({...tableBase,startY:y,head:[["BASED ON THE FIGURES YOU SHARED","PER MONTH"]],
-      body:[
-        ["Supplier invoices processed",n0(r.inv)],
-        ["Time spent on supplier invoices today",n0(r.hToday)+" hours"],
-        ["Estimated time with Supvoices",n0(r.hNew)+" hours"],
-        ["Time saved","+"+n0(r.hSaved)+" hours ("+n1(r.fte)+" FTE)"],
-        ["Value of time saved at "+m(r.hourly,2)+" per hour",m(r.saved)],
-        totalRow(isFinite(r.payback)?"Setup pays back in":"Net monthly benefit",isFinite(r.payback)?(r.payback<1?"under 1 month":n1(r.payback)+" months"):m(r.net))
-      ]});
-    y=doc.lastAutoTable.finalY+9;
+  if(q.pdfSavings!==false&&r.inv>0&&r.hourly>0){
+    k.h2("What this means for your team",68);
+    k.table({head:[["BASED ON THE FIGURES YOU SHARED","PER MONTH"]],columnStyles:{1:{halign:"right",cellWidth:48}},body:[
+      ["Supplier invoices processed",n0(r.inv)],
+      ["Time spent on supplier invoices today",n0(r.hToday)+" hours"],
+      ["Estimated time with Supvoices",n0(r.hNew)+" hours"],
+      ["Time saved","+"+n0(r.hSaved)+" hours ("+n1(r.fte)+" FTE)"],
+      ["Value of time saved at "+m(r.hourly,2)+" per hour",m(r.saved)],
+      tot(isFinite(r.payback)?"Setup pays back in":"Net monthly benefit",isFinite(r.payback)?(r.payback<1?"under 1 month":n1(r.payback)+" months"):m(r.net))]});
   }
 
   // monthly
-  sectionTitle("Monthly subscription",20+r.lines.length*8);
-  const mb=r.lines.map(l=>[l[0],m(l[1],l[2]?2:0)]);
-  if(r.discPct) mb.push(["Discount "+n1(r.discPct)+"%"+(r.termPct?" (includes "+r.termPct+"% for "+q.term+"-month term)":""),"-"+m(r.gross-r.monthly)]);
-  mb.push(totalRow("Monthly fee",m(r.monthly)));
-  doc.autoTable({...tableBase,startY:y,head:[["ITEM","AMOUNT"]],body:mb});
-  y=doc.lastAutoTable.finalY+9;
+  k.h2("Monthly subscription",60);
+  const mb=[["Subscription with an allowance of "+n0(r.alw)+" Processed Invoices per calendar month",m(r.subGross)]];
+  if(r.extraEnt) mb.push([r.extraEnt+" additional "+(r.extraEnt>1?"companies":"company")+" covered",m(r.extraEnt*p.entity)]);
+  if(r.discPct) mb.push(["Discount "+n1(r.discPct)+"%"+(r.termPct?" (includes "+r.termPct+"% for a "+q.term+"-month term)":""),"-"+m(r.gross-r.monthlyStd)]);
+  if(r.eaPct){mb.push(tot("Monthly fee from month 13",m(r.monthlyStd)));mb.push(["Early-adopter reduction "+n1(r.eaPct)+"%, first 12 months","-"+m(r.monthlyStd-r.monthly)]);mb.push(tot("Monthly fee, months 1 to 12",m(r.monthly)))}
+  else mb.push(tot("Monthly fee",m(r.monthly)));
+  mb.push(["Each invoice above the allowance, billed monthly in arrears",m(r.overPrice,2)]);
+  k.table({head:[["ITEM","AMOUNT"]],columnStyles:{1:{halign:"right",cellWidth:40}},body:mb});
 
   // setup
-  sectionTitle("Setup and onboarding (one-off)",20+r.setup.length*8);
+  k.h2("Setup and onboarding (one-off)",20+r.setup.length*8);
   const sb=r.setup.map(l=>[l[0],m(l[1])]);
   if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
-  sb.push(totalRow("Setup fee",m(r.setupNet)));
-  doc.autoTable({...tableBase,startY:y,head:[["ITEM","AMOUNT"]],body:sb});
-  y=doc.lastAutoTable.finalY+9;
+  sb.push(tot("Setup fee",m(r.setupNet)));
+  k.table({head:[["ITEM","AMOUNT"]],columnStyles:{1:{halign:"right",cellWidth:40}},body:sb});
 
-  // what's included
-  const inc=["Automatic matching of supplier invoices against "+({tourplan:"TourPlan",nitro:"Nitro",other:"your reservation system",none:"your booking records"}[q.ressys])+" bookings",
-    "Differences flagged with the reason, sent to the right person to resolve"];
-  if(num(q.statements)) inc.push("Monthly statements from "+n0(num(q.statements))+" suppliers split and matched line by line");
-  if(num(q.training)) inc.push(n0(num(q.training))+" remote training sessions of about 90 minutes");
-  if(q.sharepoint) inc.push("Invoices and matching history filed in your own SharePoint, with weekly Excel export");
-  inc.push(Math.max(num(q.users),p.usersIncl)+" user accounts, email support during office hours");
-  if(y>240){doc.addPage();y=22}
-  sectionTitle("Included"); y+=3;
-  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...INK);
-  inc.forEach(t=>{const tl=doc.splitTextToSize(t,CW-7); if(y+tl.length*4.5>277){doc.addPage();y=22}
-    doc.setFillColor(...GREEN); doc.circle(L+1.3,y-1.2,1,"F"); doc.text(tl,L+6,y); y+=tl.length*4.5+1.5});
-  y+=5;
+  // included
+  k.h2("Included in the subscription",40); k.y+=3;
+  k.list([
+    "Your own dedicated Supvoices instance, hosted in "+(q.region||seller.region||"the United Kingdom"),
+    "Matching of supplier invoices against your vouchers or purchase orders"+(q.ressys==="tourplan"||q.ressys==="nitro"?" in "+RES[q.ressys]:""),
+    "Differences explained, with queries in Microsoft Teams and supplier correction emails",
+    "Your records in your own SharePoint: every invoice, its matching, queries and history, plus a weekly export",
+    "Unlimited named users",
+    "Support and service levels as set out in Service Levels and Support"]);
+  k.h2("Onboarding included in the setup fee",40); k.y+=3;
+  k.list(onboardingItems(q,r));
 
   // terms
-  const terms=String(seller.terms||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  if(q.pdfSavings!==false && r.inv>0 && r.hourly>0) terms.push("Savings are estimates based on the volumes, times and staff costs discussed and are not a guarantee.");
-  if(terms.length){
-    if(y>250){doc.addPage();y=22}
-    sectionTitle("Terms"); y+=3;
-    doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-    terms.forEach(t=>{const tl=doc.splitTextToSize(t,CW-5); if(y+tl.length*4>277){doc.addPage();y=22}
-      doc.text("–",L,y); doc.text(tl,L+5,y); y+=tl.length*4+1.2});
-    y+=6;
-  }
+  const v=seller.docVersion||"1.0", base=(seller.legalBase||"supvoices.com/legal");
+  const terms=[
+    "The initial term is "+q.term+" months from the Start Date. It then renews for further 12 months unless either party gives at least "+(seller.noticeMonths||3)+" months' written notice before the end of the current term.",
+    "The setup fee is invoiced on signature, the monthly fee monthly in advance, and invoices above the allowance monthly in arrears. Unused allowance does not carry over.",
+    "A Processed Invoice is each supplier invoice or credit note extracted by the service, counted once.",
+    "Invoices are payable within "+(seller.payDays||30)+" days. Prices exclude VAT.",
+    "This quote is subject to the Supvoices Subscription Terms, Data Processing Agreement, Service Levels and Support, and Acceptable Use Policy (version "+v+"), published at "+base+"."];
+  String(seller.terms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean).forEach(t=>terms.push(t));
+  if(q.pdfSavings!==false&&r.inv>0&&r.hourly>0) terms.push("Savings are estimates based on the volumes, times and staff costs discussed and are not a guarantee.");
+  k.h2("Terms",30); k.y+=3;
+  k.list(terms,{size:8.5,color:MUTED,numbered:true});
 
-  // acceptance
-  if(y>250){doc.addPage();y=22}
-  doc.setDrawColor(...LINE); doc.setLineWidth(0.3);
-  doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-  doc.text("Accepted for "+(q.company||"the client"),L,y);
-  doc.line(L,y+14,L+75,y+14); doc.line(L+90,y+14,R,y+14);
-  doc.text("Name and signature",L,y+18.5); doc.text("Date",L+90,y+18.5);
-
+  // next step
+  k.need(24);
+  doc.setFillColor(...TINT); doc.roundedRect(L,k.y,CW,18,2,2,"F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.setTextColor(...INK); doc.text("To go ahead",L+5,k.y+7);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.3);
+  doc.text(pdfText("Sign the enclosed Order Form "+no+" and return it to "+(seller.email||"us")+". We will then agree a start date and book your onboarding."),L+5,k.y+12.5,{maxWidth:CW-10});
   pdfFooter(doc,no);
-  doc.setProperties({title:"Supvoices quote "+no+" – "+(q.company||""),author:seller.name||"",subject:"Quote",creator:"Supvoices Quote Builder"});
+  doc.setProperties({title:"Supvoices quote "+no+" - "+(q.company||""),author:seller.company||"",subject:"Quote",creator:"Supvoices Quote Builder"});
   return doc;
 }
+function onboardingItems(q,r){
+  const rs=q.ressys==="tourplan"||q.ressys==="nitro"?RES[q.ressys]:"your reservation system";
+  const items=[
+    "Your dedicated Supvoices instance set up in "+(q.region||seller.region||"the agreed hosting region")+".",
+    q.ressys==="none"?"Import of your open bookings or purchase orders.":"Connection to "+rs+" and first import of open vouchers or purchase orders.",
+    "Connection to your SharePoint for records, using the setup guide for your IT team (your IT team completes the Microsoft 365 steps).",
+    "Import of your supplier list"+(num(q.suppliers)?" ("+n0(num(q.suppliers))+" suppliers)":"")+" and matching rules (tolerance buffers, auto-post settings)."];
+  if(num(q.statements)) items.push("Statement matching rules for "+n0(num(q.statements))+" supplier"+(num(q.statements)>1?"s":"")+" that send monthly statements.");
+  items.push(r.trainN+" remote training session"+(r.trainN===1?"":"s")+" for users and supervisors.");
+  items.push("Support during your first month of live use.");
+  return items;
+}
+
+/* ================= order form PDF ================= */
 function buildOrderPdf(q,p){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:"a4"});
-  const r=calc(q,p), c=q.currency, L=PL, R=PR, CW=PCW;
-  const {INK,MUTED,LINE,TINT,NAVY}=PC;
-  const m=(v,dp)=>money(v,c,dp).replace(/−/g,"-").replace(/[  ]/g," ");
-  const no=orderNo(q);
-  const qd=q.qdate?new Date(q.qdate+"T12:00:00"):new Date();
-  const BLANKLINE={content:"",styles:{minCellHeight:10}};
-  const val=v=>(v&&String(v).trim())?String(v).trim():BLANKLINE;
+  const r=calc(q,p), c=q.currency, {MUTED}=PC;
+  const m=(v,dp)=>pdfText(money(v,c,dp));
+  const no=quoteNo(q);
+  const qd=dateOf(q.qdate)||new Date();
+  const valid=new Date(qd.getTime()+num(seller.valid||30)*864e5);
+  const k=pdfKit(doc);
   pdfHeader(doc,"ORDER FORM",no,fmtDate(qd));
-  let y=52;
-  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...INK);
-  const intro=doc.splitTextToSize("This order form sets out the Supvoices subscription the customer is ordering"+(q.quoteNo||q._id?", based on quote "+quoteNo(q):"")+". It becomes binding when signed by both parties.",CW);
-  doc.text(intro,L,y); y+=intro.length*4.6+5;
+  k.para("Quote "+no+" · Issued "+fmtDate(qd)+" · Valid until "+fmtDate(valid),{size:9,color:MUTED,after:3});
+  k.para("This Order Form is based on quote "+no+" and, once signed by both parties, is your contract for Supvoices. The legal terms are published online and accepted by signing below, so there is nothing else to sign.",{after:5});
 
-  const kv={margin:{left:L,right:L},theme:"plain",styles:{font:"helvetica",fontSize:9.5,textColor:INK,cellPadding:{top:2.2,bottom:2.2,left:2,right:2},lineColor:LINE,overflow:"linebreak"},
-    bodyStyles:{lineWidth:{bottom:0.15},valign:"top"},headStyles:{fontStyle:"bold",fontSize:7.5,textColor:MUTED,lineWidth:{bottom:0.3}},
-    columnStyles:{0:{cellWidth:58,textColor:MUTED}},
-    didParseCell:d=>{if(d.row.raw&&d.row.raw._total){d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=TINT;d.cell.styles.lineWidth=0;d.cell.styles.textColor=INK}}};
-  const section=(t,need)=>{if(y>277-(need||40)){doc.addPage();y=22}doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...INK);doc.text(t,L,y);y+=3;doc.setFont("helvetica","normal")};
-  const tot=(a,b)=>{const x=[a,b];x._total=true;return x};
-
-  // parties side by side
-  const half=(CW-8)/2;
-  doc.autoTable({...kv,startY:y,margin:{left:L,right:L+half+8},head:[["CUSTOMER",""]],columnStyles:{0:{cellWidth:28,textColor:MUTED}},styles:{...kv.styles,fontSize:9},
-    body:[["Company",val(q.legalName||q.company)],["Address",val(q.address)],["Tax / VAT no.",val(q.taxId)],["Contact",val(q.contact)],["Billing email",val(q.billingEmail)]]});
-  const yL=doc.lastAutoTable.finalY;
-  doc.autoTable({...kv,startY:y,margin:{left:L+half+8,right:L},head:[["SUPPLIER",""]],columnStyles:{0:{cellWidth:28,textColor:MUTED}},styles:{...kv.styles,fontSize:9},
-    body:[["Company",val(seller.company)],["Address",val(seller.address)],["Tax / VAT no.",val(seller.vat)],["Contact",val(seller.name)],["Email",val(seller.email)]]});
-  y=Math.max(yL,doc.lastAutoTable.finalY)+10;
-
-  // subscription
-  const termTxt={1:"Monthly rolling","12":"12 months","24":"24 months"}[q.term];
-  const tiers=[];
-  tiers.push(n0(p.incl)+" invoices per month included");
-  tiers.push("Invoices "+n0(p.incl+1)+"–"+n0(p.t1to)+": "+m(p.t1,2)+" each");
-  tiers.push("Invoices "+n0(p.t1to+1)+"–"+n0(p.t2to)+": "+m(p.t2,2)+" each");
-  tiers.push("Above "+n0(p.t2to)+": "+m(p.t3,2)+" each");
-  section("Subscription",80);
-  const subRows=[
-    ["Service","Supvoices supplier invoice matching"+(q.sharepoint?", with records in the customer's SharePoint":"")],
-    ["Reservation system",{tourplan:"TourPlan",nitro:"Nitro",other:"Other (to be agreed)",none:"None"}[q.ressys]],
-    ["Start date",q.startDate?fmtDate(new Date(q.startDate+"T12:00:00")):{...BLANKLINE}],
-    ["Initial term",termTxt],
-    ["Expected volume",n0(num(q.inv))+" supplier invoices per month"],
-    ["Invoice pricing",tiers.join("\n")],
-    ["Users",Math.max(num(q.users),p.usersIncl)+" users"+(p.usersIncl?" ("+p.usersIncl+" included, then "+m(p.user)+" per user per month)":"")],
-  ];
-  if(r.discPct) subRows.push(["Discount",n1(r.discPct)+"% on monthly fees"+(r.termPct?" (includes "+r.termPct+"% for the "+q.term+"-month term)":"")]);
-  subRows.push(tot("Monthly fee at expected volume",m(r.monthly)+" excl. VAT"));
-  doc.autoTable({...kv,startY:y,body:subRows});
-  y=doc.lastAutoTable.finalY+9;
-
-  // one-off
-  section("One-off setup fees",20+r.setup.length*8);
-  const sb=r.setup.map(l=>[l[0],m(l[1])]);
-  if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
-  sb.push(tot("Setup fee",m(r.setupNet)+" excl. VAT"));
-  doc.autoTable({...kv,startY:y,columnStyles:{0:{cellWidth:"auto",textColor:INK},1:{halign:"right",cellWidth:50}},body:sb});
-  y=doc.lastAutoTable.finalY+9;
-
-  // billing
-  section("Billing",50);
-  doc.autoTable({...kv,startY:y,body:[
-    ["Setup fee","Invoiced on signature"],
-    ["Monthly fee","Invoiced monthly in advance; invoices above the included volume invoiced the following month"],
-    ["Payment terms",seller.payTerms||"14 days from invoice date"],
-    ["Payment method",q.payMethod||seller.payMethod||"Bank transfer"],
-    ["Purchase order no.",val(q.poNumber)],
-    ["Currency",c+", all prices exclude VAT"],
+  // 1 parties
+  const custName=q.legalName||q.company;
+  k.h2("1. Parties",70);
+  k.table({head:[["","SUPPLIER","CUSTOMER"]],columnStyles:{0:{cellWidth:40,textColor:MUTED},1:{cellWidth:(PCW-40)/2},2:{cellWidth:(PCW-40)/2}},body:[
+    ["Company name",val(seller.company),val(custName)],
+    ["Company number",val(seller.companyNo),val(q.companyNo)],
+    ["Registered address",val(seller.address),val(q.address)],
+    ["VAT number",val(seller.vat),val(q.taxId)],
+    ["Contact for this agreement",val(seller.email),val([q.contact,q.contactEmail].filter(Boolean).join(", "))],
+    ["Billing contact",val(seller.billing),val(q.billingContact)],
+    ["Notices sent to",val(seller.notices),val(q.noticesEmail)],
   ]});
-  y=doc.lastAutoTable.finalY+9;
 
-  // terms
-  const terms=String(seller.orderTerms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean);
-  if(terms.length){
-    section("Terms",30);  y+=3;
-    doc.setFontSize(8.5); doc.setTextColor(...MUTED);
-    terms.forEach((t,i)=>{const tl=doc.splitTextToSize(t,CW-7); if(y+tl.length*4>270){doc.addPage();y=22}
-      doc.text((i+1)+".",L,y); doc.text(tl,L+6,y); y+=tl.length*4+1.4});
-    y+=6;
-  }
+  // 2 what you are buying
+  k.h2("2. What you are buying",60);
+  const ents=Math.max(1,Math.round(num(q.entities)||1));
+  k.table({head:[["ITEM","DETAIL"]],columnStyles:{0:{cellWidth:58,textColor:MUTED}},body:[
+    ["Service","Supvoices supplier-invoice matching, as a subscription, on your own dedicated instance"],
+    ["Hosting region",q.region||seller.region||{...BL}],
+    ["Companies / entities covered",ents+(ents>1?" companies":" company")+(custName&&ents===1?": "+custName:"")],
+    ["Users","Unlimited named Users"],
+    ["Reservation system connection",RES[q.ressys]||""],
+    ["Records in your Microsoft 365","Included: invoices, matching, queries and history filed in your SharePoint, plus a weekly export"],
+    ["Queries and supplier corrections","Included: Microsoft Teams queries and supplier correction emails"],
+    ["Monthly invoice allowance",n0(r.alw)+" Processed Invoices per calendar month"],
+  ]});
 
-  // signatures
-  if(y>215){doc.addPage();y=22}
-  section("Signatures",60); y+=4;
-  const col=(x,head,name,title)=>{
-    let yy=y;
-    doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(head,x,yy); yy+=7;
-    doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...INK);
-    [["Name",name],["Title",title],["Signature",""],["Date",""]].forEach(([lab,v])=>{
-      doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(lab,x,yy);
-      doc.setFontSize(10); doc.setTextColor(...INK); if(v) doc.text(v,x+20,yy);
-      doc.setDrawColor(...LINE); doc.setLineWidth(0.3); doc.line(x+20,yy+1.5,x+half,yy+1.5);
-      yy+=lab==="Signature"?14:9;
-    });
-  };
-  col(L,"FOR THE CUSTOMER: "+(q.legalName||q.company||"").toUpperCase().slice(0,40),q.signName||"",q.signTitle||"");
-  col(L+half+8,"FOR THE SUPPLIER: "+(seller.company||"").toUpperCase().slice(0,40),seller.name||"",seller.title||"");
+  // 3 fees
+  k.h2("3. Fees",60);
+  const fees=[["Setup fee (one-off)",m(r.setupNet),"On signature"]];
+  if(r.eaPct){
+    fees.push(["Monthly subscription fee (includes the allowance above), months 1 to 12",m(r.monthly)+" per month","Monthly in advance from the Start Date"]);
+    fees.push(["Monthly subscription fee from month 13",m(r.monthlyStd)+" per month","Monthly in advance"]);
+  } else fees.push(["Monthly subscription fee (includes the allowance above)",m(r.monthly)+" per month","Monthly in advance from the Start Date"]);
+  fees.push(["Invoices above the allowance",m(r.overPrice,2)+" per Processed Invoice","Monthly in arrears"]);
+  fees.push(["Optional: extra training session (remote, 2 hours)",m(p.train),"When delivered"]);
+  fees.push(["Optional: extra company / entity",m(p.entity)+" per month","Monthly in advance"]);
+  k.table({head:[["FEE","AMOUNT","WHEN INVOICED"]],columnStyles:{0:{cellWidth:"auto"},1:{cellWidth:44},2:{cellWidth:46}},body:fees});
+  if(r.extraEnt) k.para("The monthly subscription fee includes "+r.extraEnt+" additional "+(r.extraEnt>1?"companies":"company")+" at "+m(p.entity)+" per month each.",{size:8.8,color:MUTED,after:1.5});
+  if(r.discPct) k.para("The monthly subscription fee includes a discount of "+n1(r.discPct)+"%"+(r.termPct?" for the "+q.term+"-month initial term":"")+".",{size:8.8,color:MUTED,after:1.5});
+  if(num(q.discSetup)) k.para("The setup fee includes a discount of "+num(q.discSetup)+"% (full price "+m(r.setupGross)+").",{size:8.8,color:MUTED,after:1.5});
+  k.para("All prices are in "+(CURNAME[c]||c)+" and exclude VAT. Invoices are payable within "+(seller.payDays||30)+" days. A Processed Invoice is each supplier invoice or credit note extracted by the Service, counted once (see the Subscription Terms)."+(q.poNumber?" Customer purchase order number: "+q.poNumber+".":""),{size:8.8,color:MUTED,after:6});
+
+  // 4 term
+  k.h2("4. Term",50);
+  k.table({columnStyles:{0:{cellWidth:58,textColor:MUTED}},body:[
+    ["Start Date",q.startDate?fmtDate(dateOf(q.startDate)):{...BL}],
+    ["Target Go-Live Date",q.goLive?fmtDate(dateOf(q.goLive)):{...BL}],
+    ["Initial term",q.term+" months from the Start Date"],
+    ["Renewal","Renews automatically for further 12 months unless either party gives at least "+(seller.noticeMonths||3)+" months' written notice before the end of the current term"],
+  ]});
+
+  // 5 onboarding
+  k.h2("5. Onboarding included in the setup fee",50); k.y+=3;
+  k.list(onboardingItems(q,r),{numbered:true});
+  k.para("You provide: reservation system access details, a contact in your IT team for the Microsoft 365 steps, your supplier list, and a sample of recent supplier invoices.",{size:9,after:6});
+
+  // 6 special terms
+  k.h2("6. Special terms",24); k.y+=2;
+  const sp=[];
+  if(r.eaPct) sp.push(earlyAdopterTerm(q,r));
+  String(q.specialTerms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean).forEach(t=>sp.push(t));
+  if(sp.length) k.list(sp,{numbered:sp.length>1,size:9}); else k.para("None.",{after:6});
+
+  // 7 documents
+  k.h2("7. Documents that form part of this agreement",62); k.y+=2;
+  k.para("By signing, you accept the following documents in the versions shown. Each is published at the address listed, and earlier versions stay available there, so this Order Form always points to the exact text you accepted. A PDF copy of any of them is available on request.",{size:9,after:2});
+  k.table({head:[["DOCUMENT","VERSION","ADDRESS"]],columnStyles:{1:{cellWidth:20},2:{cellWidth:62}},body:docsList()});
+  k.para("If these documents and this Order Form disagree, the special terms in section 6 of this Order Form take priority, then the order set out in the Subscription Terms.",{size:9,after:6});
+
+  // 8 signatures
+  k.need(78);
+  k.h2("8. Signatures",78); k.y+=2;
+  k.para("Each person signing confirms they are authorised to sign for their company, and that their company has had the opportunity to read the documents in section 7 and accepts them. This Order Form may be signed electronically.",{size:9,after:2});
+  const sig={content:"",styles:{minCellHeight:16}};
+  k.table({head:[["","FOR "+(seller.company||"SUPPLIER").toUpperCase(),"FOR "+(custName||"CUSTOMER").toUpperCase()]],
+    columnStyles:{0:{cellWidth:30,textColor:MUTED},1:{cellWidth:(PCW-30)/2},2:{cellWidth:(PCW-30)/2}},body:[
+    ["Signature",{...sig},{...sig}],
+    ["Name",val(seller.name),val(q.signName)],
+    ["Job title",val(seller.title),val(q.signTitle)],
+    ["Date",{...BL},{...BL}],
+  ]});
 
   pdfFooter(doc,no);
-  doc.setProperties({title:"Supvoices order form "+no+" – "+(q.company||""),author:seller.name||"",subject:"Order form",creator:"Supvoices Quote Builder"});
+  doc.setProperties({title:"Supvoices order form "+no+" - "+(q.company||""),author:seller.company||"",subject:"Order form",creator:"Supvoices Quote Builder"});
   return doc;
 }
+
+/* ================= download / share ================= */
 const KINDS={quote:{build:buildPdf,name:q=>"Supvoices-Quote-"+quoteNo(q)+"-"+slug(q.company)+".pdf",label:"Quote"},
-  order:{build:buildOrderPdf,name:q=>"Supvoices-Order-Form-"+orderNo(q)+"-"+slug(q.company)+".pdf",label:"Order form"}};
+  order:{build:buildOrderPdf,name:q=>"Supvoices-Order-Form-"+quoteNo(q)+"-"+slug(q.company)+".pdf",label:"Order form"}};
 function downloadPdf(q,p,kind){
-  const K=KINDS[kind||"quote"];
+  const K=KINDS[kind];
   if(!window.jspdf){toast("PDF tools didn't load. Check your connection and reload.");return}
-  try{saveBlob(K.build(q,p).output("blob"),K.name(q)); toast(K.label+" PDF downloaded")}
+  try{saveBlob(K.build(q,p).output("blob"),K.name(q));toast(K.label+" "+quoteNo(q)+" downloaded")}
   catch(e){console.error(e);toast("Couldn't make the PDF: "+e.message)}
 }
+// The current quote gets its number the first time a PDF goes out, so both documents match.
+function currentForPdf(){if(!state.quoteNo){assignNo(state);LS.set("svq-draft",state);if(editingId)persistCurrent();render()}return state}
 function previewPdf(kind){
   if(!window.jspdf){toast("PDF tools didn't load");return}
   const url=URL.createObjectURL(KINDS[kind].build(state,prices).output("blob"));
   const w=window.open(url,"_blank"); if(!w) location.href=url;
 }
-$("pdfBtn").onclick=()=>downloadPdf(state,prices,"quote");
-$("orderBtn").onclick=()=>downloadPdf(state,prices,"order");
+$("pdfBtn").onclick=()=>downloadPdf(currentForPdf(),prices,"quote");
+$("orderBtn").onclick=()=>downloadPdf(currentForPdf(),prices,"order");
 $("previewPdfBtn").onclick=()=>previewPdf("quote");
 $("previewOrderBtn").onclick=()=>previewPdf("order");
-try{
-  const testFile=new File(["x"],"t.pdf",{type:"application/pdf"});
-  if(navigator.canShare&&navigator.canShare({files:[testFile]})) $("sharePdfBtn").hidden=false;
-}catch(e){}
+try{const tf=new File(["x"],"t.pdf",{type:"application/pdf"});if(navigator.canShare&&navigator.canShare({files:[tf]}))$("sharePdfBtn").hidden=false}catch(e){}
 $("sharePdfBtn").onclick=async()=>{
-  try{const files=["quote","order"].map(k=>new File([KINDS[k].build(state,prices).output("blob")],KINDS[k].name(state),{type:"application/pdf"}));
-    await navigator.share({files,title:"Supvoices quote and order form",text:"Supvoices quote and order form for "+(state.company||"")});
+  try{const q=currentForPdf();
+    const files=["quote","order"].map(kd=>new File([KINDS[kd].build(q,prices).output("blob")],KINDS[kd].name(q),{type:"application/pdf"}));
+    await navigator.share({files,title:"Supvoices quote and order form",text:"Supvoices quote and order form "+quoteNo(q)+" for "+(q.company||"")});
   }catch(e){if(e.name!=="AbortError")toast("Sharing didn't work. Use the download buttons.")}
 };
-window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices}};
 
+/* ================= views ================= */
+function show(v){
+  ["quote","saved","prices"].forEach(x=>$("v-"+x).hidden=x!==v);
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===v?"page":"false"));
+  $("bar").hidden=v!=="quote";
+  if(location.hash!=="#"+v) history.replaceState(null,"","#"+v);
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
+
+window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
 fillForm(); fillPrices(); fillSeller(); renderSaved(); render();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
-if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator&&location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
 </script>
 </body>
