@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Supvoices Quote Builder</title>
+<meta name="theme-color" content="#14233C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Quote">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="vendor/jspdf.plugin.autotable.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: a phone-first single column — sticky navy header, discovery form in blocks, live result panel pinned at the bottom of the screen */
+:root{
+  --navy:#14233C; --navy2:#24395E; --green:#2BB673; --ink-green:#17804C;
+  --bg:#EEF2F6; --card:#FFFFFF; --fg:#14233C; --muted:#5B6B82; --line:#D6DEE8;
+  --field:#F7F9FB; --warn:#B4610E; --warn-bg:#FDF1E3; --bad:#B42318; --ok-bg:#E6F5EC;
+  --on-navy:#FFFFFF; --on-navy-muted:#B9C5D6;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1726; --card:#16223A; --fg:#E6ECF4; --muted:#93A3BB; --line:#2A3A57;
+  --field:#1C2A45; --warn:#F2A65A; --warn-bg:#3A2A17; --bad:#FF8A80; --ok-bg:#15352A; --ink-green:#5FD49A;
+  --navy:#0A1322; --navy2:#24395E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1726; --card:#16223A; --fg:#E6ECF4; --muted:#93A3BB; --line:#2A3A57;
+  --field:#1C2A45; --warn:#F2A65A; --warn-bg:#3A2A17; --bad:#FF8A80; --ok-bg:#15352A; --ink-green:#5FD49A;
+  --navy:#0A1322; --navy2:#24395E; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{color-scheme:light}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+input[type=file]{display:none}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--navy)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--navy);color:var(--on-navy)}
+header .wrap{display:flex;align-items:center;gap:12px;padding-block:12px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-weight:600;font-size:17px;letter-spacing:.01em}
+.brand svg{flex:none}
+.brand small{font-family:var(--f-body);font-weight:400;color:var(--on-navy-muted);font-size:13px}
+nav{display:flex;gap:4px;width:100%;margin-top:6px}
+nav button{flex:1;background:none;border:0;color:var(--on-navy-muted);font:500 14px var(--f-body);padding:10px 4px 9px;border-bottom:3px solid transparent;cursor:pointer}
+nav button[aria-current="page"]{color:var(--on-navy);border-bottom-color:var(--green)}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+main{padding-block:16px 200px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h2{font-size:18px;font-weight:600}
+.block{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:14px;margin-bottom:14px}
+.block>header-row,.bh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bh .tag{font:500 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 12px}
+@media (max-width:480px){.grid{grid-template-columns:minmax(0,1fr)}}
+.f{display:grid;gap:4px;min-width:0}
+.f label{font-weight:500;font-size:14px}
+.f .q{font-size:12.5px;color:var(--muted)}
+input,select,textarea{width:100%;font:16px var(--f-body);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:10px 11px;min-height:44px}
+input[type=number],.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+textarea{min-height:90px;resize:vertical}
+.suffix{position:relative}
+.suffix span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.suffix input{padding-right:58px}
+.check{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--field);cursor:pointer}
+.check input{width:20px;height:20px;min-height:0;margin-top:1px;accent-color:var(--green);flex:none}
+.check b{font-weight:500;display:block}
+.check small{color:var(--muted);font-size:12.5px}
+.derived{font-size:13px;color:var(--muted)}
+.derived b{font-family:var(--f-mono);color:var(--fg);font-weight:500}
+.sample{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 12px;font-size:13.5px;margin-bottom:14px}
+.btn{font:600 15px var(--f-body);border-radius:8px;padding:11px 16px;min-height:44px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.btn.primary{background:var(--navy2);border-color:var(--navy2);color:var(--on-navy)}
+.btn.small{padding:7px 12px;min-height:36px;font-size:13.5px}
+.btn.danger{color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Result */
+.result{background:var(--navy);color:var(--on-navy);border-radius:12px;padding:18px;display:grid;gap:16px;margin-bottom:14px}
+.result h2{color:var(--on-navy)}
+.result .who{color:var(--on-navy-muted);font-size:13px}
+.big{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.big div{display:grid;gap:2px}
+.big .l{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--on-navy-muted)}
+.big .v{font:600 26px var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.big .s{font-size:12.5px;color:var(--on-navy-muted)}
+.tick{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:middle}
+.lines{display:grid;gap:0;border-top:1px solid rgba(255,255,255,.14)}
+.lines div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}
+.lines div span:last-child{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.lines .sub{color:var(--on-navy-muted)}
+.lines .tot{font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;padding:4px 10px;border-radius:999px}
+.chip.ok{background:rgba(43,182,115,.18);color:#8FE3B7}
+.chip.warn{background:rgba(242,166,90,.2);color:#F7C38E}
+.chip.bad{background:rgba(255,138,128,.2);color:#FFB4AC}
+.foot{font-size:12px;color:var(--on-navy-muted)}
+
+/* Bottom bar */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 18px rgba(20,35,60,.08)}
+.bar .wrap{display:flex;align-items:center;gap:10px;padding-block:10px}
+.bar .nums{flex:1;min-width:0;display:flex;gap:14px}
+.bar .nums div{display:grid;min-width:0}
+.bar .nums small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bar .nums b{font:600 17px var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Saved */
+.qitem{display:grid;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px}
+.qitem .t{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.qitem h3{font-size:16px;min-width:0;overflow-wrap:anywhere}
+.qitem .m{font-size:13px;color:var(--muted)}
+.qitem .m b{font-family:var(--f-mono);color:var(--fg);font-weight:500}
+.empty{text-align:center;color:var(--muted);padding:40px 16px}
+details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
+details summary{padding:14px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
+details .in{padding:0 16px 16px}
+details ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+details li span{color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy2);color:var(--on-navy);padding:10px 16px;border-radius:8px;font-size:14px;z-index:20}
+.note{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.v{transition:color .2s}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="4" fill="none" stroke="#B9C5D6" stroke-width="1.5"/><path d="M5 8h12M5 12h6" stroke="#B9C5D6" stroke-width="1.5"/><path d="M11 15l2.5 2.5L18 12" stroke="#2BB673" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      Supvoices <small>Quote builder</small>
+    </div>
+    <nav aria-label="Views">
+      <button data-view="quote" aria-current="page">Quote</button>
+      <button data-view="saved">Saved <span id="savedCount"></span></button>
+      <button data-view="prices">Price list</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- QUOTE VIEW -->
+<section id="v-quote">
+  <div class="sample" id="sampleBanner" hidden>
+    <span>Example figures loaded. Clear them before the meeting.</span>
+    <button class="btn small" id="clearSample">Start blank</button>
+  </div>
+
+  <div class="block">
+    <div class="bh"><h2>Client</h2><span class="tag">Who and where</span></div>
+    <div class="grid">
+      <div class="f"><label for="company">Company</label><input id="company" data-k="company" autocomplete="off"></div>
+      <div class="f"><label for="contact">Contact</label><input id="contact" data-k="contact" autocomplete="off"></div>
+      <div class="f"><label for="qdate">Date</label><input id="qdate" type="date" data-k="qdate"></div>
+      <div class="f"><label for="currency">Currency</label>
+        <select id="currency" data-k="currency"><option>EUR</option><option>GBP</option><option>USD</option></select></div>
+      <div class="f"><label for="ressys">Reservation system</label>
+        <select id="ressys" data-k="ressys"><option value="tourplan">TourPlan</option><option value="nitro">Nitro</option><option value="other">Other system</option><option value="none">None / spreadsheet</option></select>
+        <span class="q">Where do vouchers or purchase orders live?</span></div>
+      <div class="f"><label for="users">People who process invoices</label><input id="users" type="number" min="1" inputmode="numeric" data-k="users">
+        <span class="q">Including supervisors who approve.</span></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="bh"><h2>Volume</h2><span class="tag">How much</span></div>
+    <div class="grid">
+      <div class="f"><label for="inv">Supplier invoices per month</label><input id="inv" type="number" min="0" inputmode="numeric" data-k="inv">
+        <span class="q">Average across the year. "How many did you post last year?" ÷ 12.</span></div>
+      <div class="f"><label for="peak">Invoices in the busiest month</label><input id="peak" type="number" min="0" inputmode="numeric" data-k="peak">
+        <span class="q">Used for the talking point, not the price.</span></div>
+      <div class="f"><label for="suppliers">Active suppliers</label><input id="suppliers" type="number" min="0" inputmode="numeric" data-k="suppliers">
+        <span class="q">Suppliers billed in the last 12 months.</span></div>
+      <div class="f"><label for="statements">Suppliers sending monthly statements</label><input id="statements" type="number" min="0" inputmode="numeric" data-k="statements">
+        <span class="q">One invoice covering many bookings (coach firms, attractions).</span></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="bh"><h2>Time today</h2><span class="tag">Per invoice</span></div>
+    <div class="grid">
+      <div class="f"><label for="minBase">Minutes for a clean invoice</label><div class="suffix"><input id="minBase" type="number" min="0" step="0.5" inputmode="decimal" data-k="minBase"><span>min</span></div>
+        <span class="q">Open it, find the voucher, check, key it in. Ask them to time one.</span></div>
+      <div class="f"><label for="minFile">Minutes to save and file it</label><div class="suffix"><input id="minFile" type="number" min="0" step="0.5" inputmode="decimal" data-k="minFile"><span>min</span></div>
+        <span class="q">Rename, save to the folder, attach to the booking.</span></div>
+      <div class="f"><label for="pctProb">Invoices with a difference</label><div class="suffix"><input id="pctProb" type="number" min="0" max="100" inputmode="decimal" data-k="pctProb"><span>%</span></div>
+        <span class="q">Amount doesn't match, voucher missing or closed, wrong rate.</span></div>
+      <div class="f"><label for="minProb">Extra minutes per difference</label><div class="suffix"><input id="minProb" type="number" min="0" step="1" inputmode="decimal" data-k="minProb"><span>min</span></div>
+        <span class="q">Chasing ops, emailing the supplier, waiting, re-checking.</span></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="bh"><h2>Staff cost</h2><span class="tag">Per person</span></div>
+    <div class="grid">
+      <div class="f"><label for="salary">Yearly cost of one person</label><input id="salary" type="number" min="0" step="500" inputmode="numeric" data-k="salary">
+        <span class="q">Salary plus employer costs. Ask for a range if they won't say.</span></div>
+      <div class="f"><label for="hoursYear">Working hours per year</label><input id="hoursYear" type="number" min="1" inputmode="numeric" data-k="hoursYear">
+        <span class="q">About 1,700 in Spain and the UK.</span></div>
+    </div>
+    <div class="derived">Hourly cost: <b id="hourly">–</b></div>
+  </div>
+
+  <div class="block">
+    <div class="bh"><h2>Package</h2><span class="tag">What they get</span></div>
+    <label class="check"><input type="checkbox" id="sharepoint" data-k="sharepoint"><span><b>Records in their SharePoint</b><small>Invoices, matching and history filed in their Microsoft 365, plus weekly Excel export.</small></span></label>
+    <div class="grid">
+      <div class="f"><label for="training">Training sessions</label><input id="training" type="number" min="0" inputmode="numeric" data-k="training">
+        <span class="q">Remote sessions of about 90 minutes.</span></div>
+      <div class="f"><label for="term">Contract length</label>
+        <select id="term" data-k="term"><option value="1">Monthly</option><option value="12">12 months</option><option value="24">24 months</option></select></div>
+      <div class="f"><label for="discMonthly">Extra discount on monthly fee</label><div class="suffix"><input id="discMonthly" type="number" min="0" max="100" inputmode="decimal" data-k="discMonthly"><span>%</span></div></div>
+      <div class="f"><label for="discSetup">Discount on setup</label><div class="suffix"><input id="discSetup" type="number" min="0" max="100" inputmode="decimal" data-k="discSetup"><span>%</span></div></div>
+    </div>
+  </div>
+
+  <details>
+    <summary>Assumptions with Supvoices</summary>
+    <div class="in" style="display:grid;gap:12px">
+      <p class="note" style="margin:0">Estimates, not measured results. Agree them with the client and keep them conservative.</p>
+      <div class="grid">
+        <div class="f"><label for="pctStp">Invoices that go straight through</label><div class="suffix"><input id="pctStp" type="number" min="0" max="100" inputmode="decimal" data-k="pctStp"><span>%</span></div></div>
+        <div class="f"><label for="minStp">Minutes per straight-through invoice</label><div class="suffix"><input id="minStp" type="number" min="0" step="0.5" inputmode="decimal" data-k="minStp"><span>min</span></div></div>
+        <div class="f"><label for="cutRest">Time saved on the other invoices</label><div class="suffix"><input id="cutRest" type="number" min="0" max="100" inputmode="decimal" data-k="cutRest"><span>%</span></div></div>
+        <div class="f"><label for="cutProb">Time saved per difference</label><div class="suffix"><input id="cutProb" type="number" min="0" max="100" inputmode="decimal" data-k="cutProb"><span>%</span></div>
+          <span class="q">Query goes to the right person with the reason attached.</span></div>
+      </div>
+    </div>
+  </details>
+
+  <div class="block">
+    <div class="bh"><h2>Notes</h2><span class="tag">Internal, not on the PDF</span></div>
+    <textarea id="notes" data-k="notes" placeholder="Pain points, who decides, next step, go-live month…"></textarea>
+    <div class="f"><label for="pdfMsg">Message on the PDF</label>
+      <textarea id="pdfMsg" data-k="pdfMsg" placeholder="Optional. For example: Thank you for your time on Tuesday. As agreed, this covers go-live before the 2027 season."></textarea></div>
+    <label class="check"><input type="checkbox" id="pdfSavings" data-k="pdfSavings"><span><b>Show savings estimate on the PDF</b><small>Hours, cost today and payback. Turn off if the client didn't share figures.</small></span></label>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result" id="result">
+    <div>
+      <h2 id="rTitle">Quote</h2>
+      <div class="who" id="rWho"></div>
+    </div>
+    <div class="big">
+      <div><span class="l">Monthly fee</span><span class="v" id="rMonthly">–</span><span class="s" id="rMonthlyS"></span></div>
+      <div><span class="l">Setup, one-off</span><span class="v" id="rSetup">–</span><span class="s" id="rSetupS"></span></div>
+      <div><span class="l"><span class="tick"></span>Saved per month</span><span class="v" id="rSaved">–</span><span class="s" id="rSavedS"></span></div>
+      <div><span class="l">Pays back in</span><span class="v" id="rPayback">–</span><span class="s" id="rPaybackS"></span></div>
+    </div>
+    <div id="rChip"></div>
+    <div>
+      <div class="lines" id="rToday"></div>
+    </div>
+    <div>
+      <div class="lines" id="rLines"></div>
+    </div>
+    <div class="foot">Estimate based on figures given in the meeting. Prices exclude VAT.</div>
+  </div>
+
+  <div class="row" style="margin-bottom:8px">
+    <button class="btn primary" id="saveBtn">Save quote</button>
+    <button class="btn primary" id="pdfBtn">Download PDF</button>
+    <button class="btn" id="sharePdfBtn" hidden>Share PDF</button>
+    <button class="btn" id="previewPdfBtn">Preview PDF</button>
+  </div>
+  <div class="row" style="margin-bottom:8px">
+    <button class="btn" id="jsonBtn">Export JSON</button>
+    <button class="btn" id="copyBtn">Copy summary</button>
+    <button class="btn" id="newBtn">New quote</button>
+  </div>
+  <p class="note">Quotes are kept on this device. Export JSON to keep a file copy or move a quote to another device.</p>
+
+  <details>
+    <summary>More questions to ask</summary>
+    <div class="in"><ul>
+      <li>Who touches an invoice from arrival to payment? <span>Shows hand-offs between accounts, ops and supervisors.</span></li>
+      <li>How do invoices arrive? <span>Shared mailbox, post, supplier portals.</span></li>
+      <li>What happens when the amount doesn't match the voucher? <span>Who decides, how long it waits.</span></li>
+      <li>How many invoices are waiting right now, and the oldest one? <span>The backlog is the pain in July.</span></li>
+      <li>Have you paid a supplier twice, or paid more than the voucher, in the last year?</li>
+      <li>How do suppliers chase you for payment, and how often?</li>
+      <li>Do you get credit notes, deposits or pro formas? <span>Not covered yet; note them.</span></li>
+      <li>Where are invoices stored today, and could an auditor find one in a minute?</li>
+      <li>Do you hire temporary staff in peak season for the purchase ledger?</li>
+      <li>Who signs off on new tools, and what would they need to see?</li>
+      <li>When would you want to go live? <span>Before the season is the usual answer.</span></li>
+    </ul></div>
+  </details>
+</section>
+
+<!-- SAVED VIEW -->
+<section id="v-saved" hidden>
+  <div class="bh" style="margin-bottom:12px"><h2>Saved quotes</h2><span class="tag">This device</span></div>
+  <div id="savedList"></div>
+  <div class="block">
+    <div class="bh"><h2>Files</h2><span class="tag">Back up and move</span></div>
+    <p class="note" style="margin:0">Export all quotes and your price list as one JSON file. Import a backup or a single quote file on any device.</p>
+    <div class="row">
+      <button class="btn small" id="exportAll">Export all (JSON)</button>
+      <button class="btn small" id="importBtn">Import JSON file</button>
+      <input type="file" id="importFile" accept=".json,application/json">
+    </div>
+  </div>
+  <details>
+    <summary>Copy and paste instead</summary>
+    <div class="in" style="display:grid;gap:10px">
+      <p class="note" style="margin:0">For when files are awkward, e.g. sending to yourself in a chat.</p>
+      <div class="row"><button class="btn small" id="copyBackup">Copy backup</button></div>
+      <textarea id="restoreText" placeholder="Paste a backup here"></textarea>
+      <div class="row"><button class="btn small" id="restoreBtn">Restore from backup</button></div>
+    </div>
+  </details>
+</section>
+
+<!-- PRICES VIEW -->
+<section id="v-prices" hidden>
+  <div class="bh" style="margin-bottom:6px"><h2>Price list</h2><span class="tag">Your defaults</span></div>
+  <p class="note" style="margin:0 0 14px">Draft figures. Change them to your real price list; every quote uses them. Amounts in the quote's currency.</p>
+
+  <div class="block">
+    <div class="bh"><h2>Monthly</h2></div>
+    <div class="grid">
+      <div class="f"><label for="p_base">Platform fee</label><input id="p_base" type="number" step="5" data-p="base" inputmode="decimal"></div>
+      <div class="f"><label for="p_incl">Invoices included</label><input id="p_incl" type="number" data-p="incl" inputmode="numeric"></div>
+      <div class="f"><label for="p_t1to">Tier 1 up to (invoices)</label><input id="p_t1to" type="number" data-p="t1to" inputmode="numeric"></div>
+      <div class="f"><label for="p_t1">Tier 1 price per invoice</label><input id="p_t1" type="number" step="0.05" data-p="t1" inputmode="decimal"></div>
+      <div class="f"><label for="p_t2to">Tier 2 up to (invoices)</label><input id="p_t2to" type="number" data-p="t2to" inputmode="numeric"></div>
+      <div class="f"><label for="p_t2">Tier 2 price per invoice</label><input id="p_t2" type="number" step="0.05" data-p="t2" inputmode="decimal"></div>
+      <div class="f"><label for="p_t3">Above tier 2, per invoice</label><input id="p_t3" type="number" step="0.05" data-p="t3" inputmode="decimal"></div>
+      <div class="f"><label for="p_sp">SharePoint records</label><input id="p_sp" type="number" step="5" data-p="sp" inputmode="decimal"></div>
+      <div class="f"><label for="p_usersIncl">Users included</label><input id="p_usersIncl" type="number" data-p="usersIncl" inputmode="numeric"></div>
+      <div class="f"><label for="p_user">Each extra user</label><input id="p_user" type="number" step="1" data-p="user" inputmode="decimal"></div>
+      <div class="f"><label for="p_d12">12-month discount %</label><input id="p_d12" type="number" data-p="d12" inputmode="decimal"></div>
+      <div class="f"><label for="p_d24">24-month discount %</label><input id="p_d24" type="number" data-p="d24" inputmode="decimal"></div>
+      <div class="f"><label for="p_min">Minimum monthly fee</label><input id="p_min" type="number" step="5" data-p="min" inputmode="decimal"></div>
+      <div class="f"><label for="p_valueMax">Fee should stay under this % of savings</label><input id="p_valueMax" type="number" data-p="valueMax" inputmode="decimal"></div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="bh"><h2>Setup</h2></div>
+    <div class="grid">
+      <div class="f"><label for="p_onb">Onboarding and configuration</label><input id="p_onb" type="number" step="50" data-p="onb" inputmode="decimal"></div>
+      <div class="f"><label for="p_rsTp">Connect TourPlan</label><input id="p_rsTp" type="number" step="50" data-p="rsTp" inputmode="decimal"></div>
+      <div class="f"><label for="p_rsNi">Connect Nitro</label><input id="p_rsNi" type="number" step="50" data-p="rsNi" inputmode="decimal"></div>
+      <div class="f"><label for="p_rsOt">Connect other system</label><input id="p_rsOt" type="number" step="50" data-p="rsOt" inputmode="decimal"></div>
+      <div class="f"><label for="p_spSetup">SharePoint setup</label><input id="p_spSetup" type="number" step="50" data-p="spSetup" inputmode="decimal"></div>
+      <div class="f"><label for="p_supp">Supplier import per 100 suppliers</label><input id="p_supp" type="number" step="10" data-p="supp" inputmode="decimal"></div>
+      <div class="f"><label for="p_stmt">Statement rule per supplier</label><input id="p_stmt" type="number" step="10" data-p="stmt" inputmode="decimal"></div>
+      <div class="f"><label for="p_train">Training session</label><input id="p_train" type="number" step="25" data-p="train" inputmode="decimal"></div>
+      <div class="f"><label for="p_trainIncl">Training sessions included</label><input id="p_trainIncl" type="number" data-p="trainIncl" inputmode="numeric"></div>
+    </div>
+  </div>
+  <div class="block">
+    <div class="bh"><h2>Your details on the PDF</h2></div>
+    <div class="grid">
+      <div class="f"><label for="s_name">Your name</label><input id="s_name" data-s="name" autocomplete="name"></div>
+      <div class="f"><label for="s_title">Role</label><input id="s_title" data-s="title"></div>
+      <div class="f"><label for="s_company">Company issuing the quote</label><input id="s_company" data-s="company"></div>
+      <div class="f"><label for="s_vat">VAT / tax number</label><input id="s_vat" data-s="vat"></div>
+      <div class="f"><label for="s_email">Email</label><input id="s_email" data-s="email" type="email" autocomplete="email"></div>
+      <div class="f"><label for="s_phone">Phone</label><input id="s_phone" data-s="phone" type="tel" autocomplete="tel"></div>
+      <div class="f"><label for="s_web">Website</label><input id="s_web" data-s="web"></div>
+      <div class="f"><label for="s_valid">Quote valid for (days)</label><input id="s_valid" data-s="valid" type="number" inputmode="numeric"></div>
+    </div>
+    <div class="f"><label for="s_terms">Terms printed on every quote</label><textarea id="s_terms" data-s="terms"></textarea>
+      <span class="q">One term per line.</span></div>
+  </div>
+  <div class="row"><button class="btn" id="resetPrices">Reset to draft prices</button></div>
+</section>
+</main>
+
+<div class="bar" id="bar">
+  <div class="wrap">
+    <div class="nums">
+      <div><small>Monthly</small><b id="bMonthly">–</b></div>
+      <div><small>Setup</small><b id="bSetup">–</b></div>
+      <div><small>Saved / mo</small><b id="bSaved">–</b></div>
+    </div>
+    <button class="btn small" id="toResult">See quote</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const DEFAULT_PRICES={base:290,incl:150,t1to:500,t1:0.95,t2to:1500,t2:0.70,t3:0.45,sp:60,usersIncl:3,user:15,d12:5,d24:10,min:290,valueMax:35,
+  onb:900,rsTp:600,rsNi:600,rsOt:1500,spSetup:400,supp:100,stmt:150,train:250,trainIncl:1};
+const today=()=>new Date().toISOString().slice(0,10);
+const BLANK={company:"",contact:"",qdate:today(),currency:"EUR",ressys:"tourplan",users:2,inv:0,peak:0,suppliers:0,statements:0,
+  minBase:8,minFile:2,pctProb:25,minProb:20,salary:32000,hoursYear:1700,sharepoint:true,training:2,term:"12",discMonthly:0,discSetup:0,
+  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true};
+const DEFAULT_SELLER={name:"Stan",title:"Founder",company:"SR Travel Tech Services",vat:"",email:"stan@srtraveltech.com",phone:"",web:"subvoices.com",valid:30,
+  terms:"Monthly fees are invoiced monthly in advance; setup is invoiced on signature.\nPayment within 14 days of invoice.\nInvoice volumes above the agreed tier are billed at the tier price for that month.\nPrices exclude VAT."};
+let seller=Object.assign({},DEFAULT_SELLER,LS_get("svq-seller",{}));
+function LS_get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",contact:"Sample contact",inv:420,peak:900,suppliers:380,statements:4,users:3,minBase:9,pctProb:30,minProb:25,salary:34000,_sample:true});
+
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}};
+let prices=Object.assign({},DEFAULT_PRICES,LS.get("svq-prices",{}));
+let quotes=LS.get("svq-quotes",[]);
+let state=(()=>{const d=LS.get("svq-draft",null);return d?Object.assign({},BLANK,d):Object.assign({},SAMPLE)})();
+let editingId=state._id||null;
+
+const $=id=>document.getElementById(id);
+const num=v=>{const n=parseFloat(v);return isFinite(n)?n:0};
+const money=(v,c,dp)=>{try{return new Intl.NumberFormat("en-GB",{style:"currency",currency:c||state.currency||"EUR",maximumFractionDigits:dp??0,minimumFractionDigits:dp??0}).format(v)}catch(e){return Math.round(v)}};
+const n0=v=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:0}).format(v);
+const n1=v=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:1}).format(v);
+
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,1800)}
+
+/* ---------- calculation ---------- */
+function calc(s,p){
+  const inv=num(s.inv), users=Math.max(1,num(s.users));
+  const hourly=num(s.hoursYear)>0?num(s.salary)/num(s.hoursYear):0;
+  const prob=num(s.pctProb)/100;
+  // today
+  const minToday=inv*(num(s.minBase)+num(s.minFile))+inv*prob*num(s.minProb);
+  const hToday=minToday/60, costToday=hToday*hourly;
+  // with Supvoices
+  const stp=Math.min(1,num(s.pctStp)/100);
+  const filing=s.sharepoint?0:num(s.minFile);
+  const minNew=inv*stp*num(s.minStp)
+    +inv*(1-stp)*(num(s.minBase)*(1-num(s.cutRest)/100))
+    +inv*filing
+    +inv*prob*num(s.minProb)*(1-num(s.cutProb)/100);
+  const hNew=minNew/60, costNew=hNew*hourly;
+  const hSaved=Math.max(0,hToday-hNew), saved=Math.max(0,costToday-costNew);
+  const fte=num(s.hoursYear)>0?hSaved/(num(s.hoursYear)/12):0;
+
+  // monthly fee
+  const lines=[];
+  lines.push(["Platform, "+n0(p.incl)+" invoices included",p.base]);
+  let over=Math.max(0,inv-p.incl), usage=0;
+  const t1n=Math.max(0,Math.min(over,p.t1to-p.incl)); usage+=t1n*p.t1; over-=t1n;
+  const t2n=Math.max(0,Math.min(over,p.t2to-p.t1to)); usage+=t2n*p.t2; over-=t2n;
+  const t3n=Math.max(0,over); usage+=t3n*p.t3;
+  if(t1n) lines.push([n0(t1n)+" invoices × "+money(p.t1,s.currency,2),t1n*p.t1,1]);
+  if(t2n) lines.push([n0(t2n)+" invoices × "+money(p.t2,s.currency,2),t2n*p.t2,1]);
+  if(t3n) lines.push([n0(t3n)+" invoices × "+money(p.t3,s.currency,2),t3n*p.t3,1]);
+  if(s.sharepoint) lines.push(["SharePoint records",p.sp]);
+  const xu=Math.max(0,users-p.usersIncl); if(xu) lines.push([xu+" extra users × "+money(p.user,s.currency),xu*p.user]);
+  let gross=lines.reduce((a,l)=>a+l[1],0);
+  let minApplied=false; if(gross<p.min){lines.push(["Minimum monthly fee top-up",p.min-gross]);gross=p.min;minApplied=true}
+  const termPct=s.term==="24"?p.d24:s.term==="12"?p.d12:0;
+  const discPct=Math.min(100,termPct+num(s.discMonthly));
+  const monthly=gross*(1-discPct/100);
+
+  // setup
+  const setup=[];
+  setup.push(["Onboarding and configuration",p.onb]);
+  const rs={tourplan:["Connect TourPlan",p.rsTp],nitro:["Connect Nitro",p.rsNi],other:["Connect reservation system",p.rsOt]}[s.ressys];
+  if(rs&&rs[1]) setup.push(rs);
+  if(s.sharepoint&&p.spSetup) setup.push(["SharePoint setup",p.spSetup]);
+  const blocks=Math.ceil(num(s.suppliers)/100); if(blocks&&p.supp) setup.push(["Import "+n0(num(s.suppliers))+" suppliers",blocks*p.supp]);
+  const st=num(s.statements); if(st&&p.stmt) setup.push([st+" statement supplier rules",st*p.stmt]);
+  const tr=Math.max(0,num(s.training)-p.trainIncl); if(tr) setup.push([tr+" training sessions"+(p.trainIncl?" (+"+p.trainIncl+" included)":""),tr*p.train]);
+  const setupGross=setup.reduce((a,l)=>a+l[1],0);
+  const setupNet=setupGross*(1-Math.min(100,num(s.discSetup))/100);
+
+  const net=saved-monthly;
+  const payback=net>0?setupNet/net:Infinity;
+  const valuePct=saved>0?monthly/saved*100:Infinity;
+  const perInv=inv>0?monthly/inv:0;
+  const year1=monthly*12+setupNet;
+  return {hourly,hToday,costToday,hNew,hSaved,saved,fte,lines,gross,termPct,discPct,monthly,setup,setupGross,setupNet,net,payback,valuePct,perInv,year1,minApplied,inv};
+}
+
+/* ---------- render ---------- */
+function render(){
+  const r=calc(state,prices), c=state.currency;
+  $("hourly").textContent=r.hourly?money(r.hourly,c,2):"–";
+  $("rTitle").textContent=state.company||"Quote";
+  $("rWho").textContent=[state.contact,state.qdate&&new Date(state.qdate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}),{1:"Monthly contract","12":"12-month contract","24":"24-month contract"}[state.term]].filter(Boolean).join(" · ");
+  $("rMonthly").textContent=money(r.monthly,c);
+  $("rMonthlyS").textContent=r.inv?money(r.perInv,c,2)+" per invoice":"";
+  $("rSetup").textContent=money(r.setupNet,c);
+  $("rSetupS").textContent=num(state.discSetup)?num(state.discSetup)+"% off "+money(r.setupGross,c):"";
+  $("rSaved").textContent=money(r.saved,c);
+  $("rSavedS").textContent=n0(r.hSaved)+" hours · "+n1(r.fte)+" FTE";
+  $("rPayback").textContent=isFinite(r.payback)?(r.payback<1?"< 1 month":n1(r.payback)+" months"):"–";
+  $("rPaybackS").textContent=r.net>0?"Net "+money(r.net,c)+" a month after the fee":"Fee is higher than the saving";
+  let chip;
+  if(!isFinite(r.valuePct)) chip='<span class="chip warn">Enter volume and time to check value</span>';
+  else if(r.valuePct<=prices.valueMax) chip='<span class="chip ok">Fee is '+n0(r.valuePct)+'% of the saving</span>';
+  else if(r.valuePct<=100) chip='<span class="chip warn">Fee is '+n0(r.valuePct)+'% of the saving, above your '+prices.valueMax+'% target</span>';
+  else chip='<span class="chip bad">Fee is more than the saving</span>';
+  $("rChip").innerHTML=chip;
+
+  const L=(a,b,cls)=>'<div class="'+(cls||"")+'"><span>'+esc(a)+'</span><span>'+b+'</span></div>';
+  $("rToday").innerHTML=
+    L("Invoice work today",n0(r.hToday)+" h · "+money(r.costToday,c))+
+    L("With Supvoices",n0(r.hNew)+" h · "+money(r.costToday-r.saved,c),"sub")+
+    (num(state.peak)?L("Busiest month, today",n0(r.hToday*num(state.peak)/Math.max(1,num(state.inv)))+" h","sub"):"");
+  let h=r.lines.map(l=>L(l[0],money(l[1],c,l[2]?2:0),"sub")).join("");
+  if(r.discPct) h+=L("Discount "+n1(r.discPct)+"%"+(r.termPct?" (incl. "+r.termPct+"% term)":""),"−"+money(r.gross-r.monthly,c),"sub");
+  h+=L("Monthly fee",money(r.monthly,c),"tot");
+  h+=r.setup.map(l=>L(l[0],money(l[1],c),"sub")).join("");
+  if(num(state.discSetup)) h+=L("Setup discount "+num(state.discSetup)+"%","−"+money(r.setupGross-r.setupNet,c),"sub");
+  h+=L("Setup fee",money(r.setupNet,c),"tot");
+  h+=L("First-year total",money(r.year1,c),"tot");
+  $("rLines").innerHTML=h;
+
+  $("bMonthly").textContent=money(r.monthly,c);
+  $("bSetup").textContent=money(r.setupNet,c);
+  $("bSaved").textContent=money(r.saved,c);
+  $("sampleBanner").hidden=!state._sample;
+  $("saveBtn").textContent=editingId?"Update saved quote":"Save quote";
+  return r;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]))}
+
+function fillForm(){
+  document.querySelectorAll("[data-k]").forEach(el=>{
+    const k=el.dataset.k, v=state[k];
+    if(el.type==="checkbox") el.checked=!!v; else el.value=v??"";
+  });
+}
+function fillPrices(){document.querySelectorAll("[data-p]").forEach(el=>el.value=prices[el.dataset.p])}
+
+document.querySelectorAll("[data-k]").forEach(el=>{
+  el.addEventListener("input",()=>{
+    const k=el.dataset.k;
+    state[k]=el.type==="checkbox"?el.checked:(el.type==="number"?el.value:el.value);
+    if(state._sample && ["company","inv"].includes(k)) delete state._sample;
+    LS.set("svq-draft",state); render();
+  });
+  if(el.type==="checkbox"||el.tagName==="SELECT") el.addEventListener("change",()=>el.dispatchEvent(new Event("input")));
+});
+document.querySelectorAll("[data-p]").forEach(el=>el.addEventListener("input",()=>{prices[el.dataset.p]=num(el.value);LS.set("svq-prices",prices);render()}));
+
+$("resetPrices").onclick=function(){
+  if(this.dataset.armed){prices=Object.assign({},DEFAULT_PRICES);LS.set("svq-prices",prices);fillPrices();render();toast("Draft prices restored");this.textContent="Reset to draft prices";delete this.dataset.armed}
+  else{this.dataset.armed=1;this.textContent="Tap again to reset";setTimeout(()=>{this.textContent="Reset to draft prices";delete this.dataset.armed},3000)}
+};
+
+$("clearSample").onclick=()=>{state=Object.assign({},BLANK,{qdate:today()});editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo(0,0)};
+$("newBtn").onclick=()=>{state=Object.assign({},BLANK,{qdate:today()});editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote")};
+$("toResult").onclick=()=>{show("quote");$("result").scrollIntoView({behavior:"smooth",block:"start"})};
+
+$("saveBtn").onclick=()=>{
+  const r=calc(state,prices);
+  if(!state.quoteNo) state.quoteNo=quoteNo(state);
+  const rec={...state,_id:editingId||("q"+Date.now()),_saved:new Date().toISOString(),_prices:{...prices},_monthly:r.monthly,_setup:r.setupNet,_saved_m:r.saved};
+  delete rec._sample;
+  const i=quotes.findIndex(q=>q._id===rec._id);
+  if(i>=0) quotes[i]=rec; else quotes.unshift(rec);
+  editingId=rec._id; state._id=rec._id; LS.set("svq-draft",state);
+  const ok=LS.set("svq-quotes",quotes); renderSaved(); render();
+  toast(ok?(i>=0?"Quote updated":"Quote saved"):"Couldn't save on this device");
+};
+
+function summaryText(s,r){
+  const c=s.currency;
+  return [
+    "Supvoices quote — "+(s.company||"Client"),
+    s.contact?("Contact: "+s.contact):null,
+    "Date: "+s.qdate,
+    "",
+    "Monthly fee: "+money(r.monthly,c)+" ("+money(r.perInv,c,2)+" per invoice, "+n0(num(s.inv))+" invoices/month)",
+    "Setup (one-off): "+money(r.setupNet,c),
+    "First-year total: "+money(r.year1,c),
+    "Contract: "+({1:"monthly","12":"12 months","24":"24 months"}[s.term]),
+    "",
+    "Invoice work today: "+n0(r.hToday)+" h/month ("+money(r.costToday,c)+")",
+    "Estimated saving: "+n0(r.hSaved)+" h/month ("+money(r.saved,c)+", "+n1(r.fte)+" FTE)",
+    isFinite(r.payback)?"Setup pays back in "+n1(r.payback)+" months":null,
+    "",
+    "Estimate based on figures given in the meeting. Prices exclude VAT."
+  ].filter(x=>x!==null).join("\n");
+}
+async function copy(text,okMsg,fallbackEl){
+  try{await navigator.clipboard.writeText(text);toast(okMsg)}
+  catch(e){ if(fallbackEl){fallbackEl.value=text;fallbackEl.focus();fallbackEl.select();toast("Selected. Copy it from the box")}else toast("Copy isn't allowed here") }
+}
+$("copyBtn").onclick=()=>copy(summaryText(state,calc(state,prices)),"Summary copied",$("notes").value?null:null);
+
+/* ---------- saved list ---------- */
+function renderSaved(){
+  $("savedCount").textContent=quotes.length?"("+quotes.length+")":"";
+  const box=$("savedList");
+  if(!quotes.length){box.innerHTML='<div class="empty">No saved quotes yet.<br>Fill in a quote and tap <b>Save quote</b>.</div>';return}
+  box.innerHTML=quotes.map(q=>{
+    const r=calc(q,Object.assign({},DEFAULT_PRICES,q._prices||prices));
+    return '<div class="qitem" data-id="'+q._id+'"><div class="t"><h3>'+esc(q.company||"Untitled")+'</h3><span class="m">'+esc(q.qdate||"")+'</span></div>'+
+      '<div class="m">Monthly <b>'+money(r.monthly,q.currency)+'</b> · Setup <b>'+money(r.setupNet,q.currency)+'</b> · Saves <b>'+money(r.saved,q.currency)+'</b>/mo · '+n0(num(q.inv))+' inv</div>'+
+      (q.notes?'<div class="m">'+esc(q.notes.slice(0,120))+(q.notes.length>120?"…":"")+'</div>':"")+
+      '<div class="row"><button class="btn small" data-a="open">Open</button><button class="btn small" data-a="pdf">PDF</button><button class="btn small" data-a="json">JSON</button><button class="btn small" data-a="dup">Duplicate</button><button class="btn small" data-a="copy">Copy summary</button><button class="btn small danger" data-a="del">Delete</button></div></div>';
+  }).join("");
+}
+$("savedList").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-a]"); if(!b) return;
+  const id=b.closest(".qitem").dataset.id, q=quotes.find(x=>x._id===id); if(!q) return;
+  const a=b.dataset.a;
+  if(a==="open"||a==="dup"){
+    state={...BLANK,...q}; delete state._prices;
+    if(a==="dup"){delete state._id;state.company=(q.company||"")+" (copy)";state.qdate=today();editingId=null}else editingId=q._id;
+    if(q._prices && a==="open" && JSON.stringify(q._prices)!==JSON.stringify(prices)) toast("Opened with today's price list");
+    LS.set("svq-draft",state); fillForm(); render(); show("quote"); window.scrollTo(0,0);
+  } else if(a==="pdf"){ downloadPdf(q, pricesFor(q)) }
+  else if(a==="json"){ exportQuoteJson(q) }
+  else if(a==="copy"){ copy(summaryText(q,calc(q,Object.assign({},DEFAULT_PRICES,q._prices||prices))),"Summary copied") }
+  else if(a==="del"){
+    if(b.dataset.armed){quotes=quotes.filter(x=>x._id!==id);LS.set("svq-quotes",quotes);if(editingId===id){editingId=null;delete state._id}renderSaved();render();toast("Quote deleted")}
+    else{b.dataset.armed=1;b.textContent="Tap to confirm";setTimeout(()=>{if(b.isConnected){b.textContent="Delete";delete b.dataset.armed}},3000)}
+  }
+});
+$("copyBackup").onclick=()=>copy(JSON.stringify({v:1,prices,quotes}),"Backup copied",$("restoreText"));
+$("restoreBtn").onclick=()=>{
+  try{const d=JSON.parse($("restoreText").value);
+    if(!d||!Array.isArray(d.quotes)) throw 0;
+    const ids=new Set(quotes.map(q=>q._id)); let added=0;
+    d.quotes.forEach(q=>{if(q&&q._id&&!ids.has(q._id)){quotes.push(q);added++}});
+    if(d.prices) {prices=Object.assign({},DEFAULT_PRICES,d.prices);LS.set("svq-prices",prices);fillPrices()}
+    LS.set("svq-quotes",quotes);renderSaved();render();$("restoreText").value="";toast(added+" quotes restored");
+  }catch(e){toast("That isn't a Supvoices backup. Paste the full text you copied.")}
+};
+
+/* ---------- views ---------- */
+function show(v){
+  ["quote","saved","prices"].forEach(x=>$("v-"+x).hidden=x!==v);
+  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===v?"page":"false"));
+  if(location.hash!=="#"+v) history.replaceState(null,"","#"+v);
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
+
+/* ---------- seller details ---------- */
+document.querySelectorAll("[data-s]").forEach(el=>el.addEventListener("input",()=>{seller[el.dataset.s]=el.value;LS.set("svq-seller",seller)}));
+function fillSeller(){document.querySelectorAll("[data-s]").forEach(el=>el.value=seller[el.dataset.s]??"")}
+function pricesFor(q){return Object.assign({},DEFAULT_PRICES,q._prices||prices)}
+
+/* ---------- files ---------- */
+const slug=s=>(String(s||"client").normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase()||"client");
+function saveBlob(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+function quoteNo(q){
+  if(q.quoteNo) return q.quoteNo;
+  const d=(q.qdate||today()).replace(/-/g,"").slice(2);
+  return "SQ-"+d+"-"+(slug(q.company).replace(/-/g,"").slice(0,4).toUpperCase()||"XXXX");
+}
+function exportQuoteJson(q){
+  const r=calc(q,pricesFor(q));
+  const data={type:"supvoices-quote",version:1,exported:new Date().toISOString(),quote:{...q,_prices:pricesFor(q)},
+    result:{monthlyFee:+r.monthly.toFixed(2),setupFee:+r.setupNet.toFixed(2),firstYearTotal:+r.year1.toFixed(2),
+      savedPerMonth:+r.saved.toFixed(2),hoursSavedPerMonth:+r.hSaved.toFixed(1),paybackMonths:isFinite(r.payback)?+r.payback.toFixed(1):null,currency:q.currency}};
+  delete data.quote._sample;
+  saveBlob(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),"supvoices-quote-"+slug(q.company)+"-"+(q.qdate||today())+".json");
+  toast("JSON exported");
+}
+$("jsonBtn").onclick=()=>exportQuoteJson(state);
+$("exportAll").onclick=()=>{
+  saveBlob(new Blob([JSON.stringify({type:"supvoices-backup",version:1,exported:new Date().toISOString(),prices,seller,quotes},null,2)],{type:"application/json"}),"supvoices-quotes-backup-"+today()+".json");
+  toast("Backup exported");
+};
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{
+    const d=JSON.parse(await f.text());
+    if(d.type==="supvoices-quote"&&d.quote){
+      const q={...d.quote}; if(!q._id) q._id="q"+Date.now();
+      const i=quotes.findIndex(x=>x._id===q._id); if(i>=0) quotes[i]=q; else quotes.unshift(q);
+      LS.set("svq-quotes",quotes);
+      state={...BLANK,...q}; delete state._prices; editingId=q._id; LS.set("svq-draft",state);
+      fillForm(); renderSaved(); render(); show("quote"); window.scrollTo(0,0);
+      toast("Quote imported: "+(q.company||"Untitled"));
+    } else if(Array.isArray(d.quotes)){
+      const ids=new Set(quotes.map(q=>q._id)); let added=0;
+      d.quotes.forEach(q=>{if(q&&q._id&&!ids.has(q._id)){quotes.push(q);added++}});
+      if(d.prices){prices=Object.assign({},DEFAULT_PRICES,d.prices);LS.set("svq-prices",prices);fillPrices()}
+      if(d.seller){seller=Object.assign({},DEFAULT_SELLER,d.seller);LS.set("svq-seller",seller);fillSeller()}
+      LS.set("svq-quotes",quotes); renderSaved(); render(); toast(added+" quotes imported");
+    } else throw 0;
+  }catch(err){toast("That file isn't a Supvoices quote or backup")}
+};
+
+/* ---------- PDF ---------- */
+function buildPdf(q,p){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const r=calc(q,p), c=q.currency;
+  const m=(v,dp)=>money(v,c,dp).replace(/−/g,"-").replace(/[  ]/g," ");
+  const W=210, L=18, R=W-18, CW=R-L;
+  const NAVY=[20,35,60], NAVY2=[36,57,94], GREEN=[43,182,115], INK=[20,35,60], MUTED=[96,110,132], LINE=[214,222,232], TINT=[241,244,248];
+  const no=quoteNo(q);
+  const qd=q.qdate?new Date(q.qdate+"T12:00:00"):new Date();
+  const fmtD=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"});
+  const valid=new Date(qd.getTime()+num(seller.valid||30)*864e5);
+  const termTxt={1:"Monthly, cancel with 30 days' notice","12":"12 months","24":"24 months"}[q.term];
+
+  // header band
+  doc.setFillColor(...NAVY); doc.rect(0,0,W,40,"F");
+  doc.setDrawColor(185,197,214); doc.setLineWidth(0.5); doc.roundedRect(L,13,11,11,2,2,"S");
+  doc.setLineWidth(0.5); doc.line(L+2.5,16.5,L+8.5,16.5); doc.line(L+2.5,19,L+6,19);
+  doc.setDrawColor(...GREEN); doc.setLineWidth(1); doc.line(L+5.5,21.3,L+6.9,22.6); doc.line(L+6.9,22.6,L+9.7,19.4);
+  doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(20); doc.text("Supvoices",L+15,21.5);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(185,197,214); doc.text("Supplier invoice matching for tour operators",L+15,27);
+  doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(255,255,255); doc.text("QUOTE",R,17,{align:"right"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(185,197,214);
+  doc.text(no,R,23,{align:"right"}); doc.text(fmtD(qd),R,28,{align:"right"});
+
+  // parties
+  let y=52;
+  const col2=L+CW/2+4;
+  doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.setFont("helvetica","bold");
+  doc.text("PREPARED FOR",L,y); doc.text("PREPARED BY",col2,y);
+  doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(...INK);
+  const cl=doc.splitTextToSize(q.company||"Client",CW/2-6); doc.text(cl,L,y+6);
+  doc.text(doc.splitTextToSize(seller.name||"",CW/2-6),col2,y+6);
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...MUTED);
+  let yl=y+6+cl.length*5; if(q.contact){doc.text(doc.splitTextToSize(q.contact,CW/2-6),L,yl);yl+=5}
+  let yr=y+11; [seller.title,seller.company,seller.email,seller.phone].filter(Boolean).forEach(t=>{doc.text(t,col2,yr);yr+=4.6});
+  y=Math.max(yl,yr)+4;
+  doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text("Valid until "+fmtD(valid)+"   ·   Contract: "+termTxt+"   ·   Prices in "+c+", excluding VAT",L,y);
+  y+=7;
+
+  // message
+  if(q.pdfMsg&&q.pdfMsg.trim()){
+    doc.setFontSize(10); doc.setTextColor(...INK);
+    const ml=doc.splitTextToSize(q.pdfMsg.trim(),CW); doc.text(ml,L,y+2); y+=ml.length*4.6+5;
+  }
+
+  // summary tiles
+  const tiles=[["Monthly fee",m(r.monthly),r.inv?m(r.perInv,2)+" per invoice":""],["Setup, one-off",m(r.setupNet),num(q.discSetup)?num(q.discSetup)+"% discount applied":"Paid once at start"],["First-year total",m(r.year1),"12 months + setup"]];
+  const tw=(CW-8)/3;
+  tiles.forEach((t,i)=>{
+    const x=L+i*(tw+4);
+    doc.setFillColor(...(i===0?NAVY:TINT)); doc.roundedRect(x,y,tw,26,2,2,"F");
+    doc.setFontSize(7.5); doc.setFont("helvetica","bold"); doc.setTextColor(...(i===0?[185,197,214]:MUTED)); doc.text(t[0].toUpperCase(),x+5,y+7);
+    doc.setFontSize(17); doc.setTextColor(...(i===0?[255,255,255]:INK)); doc.text(t[1],x+5,y+16);
+    doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(...(i===0?[185,197,214]:MUTED)); doc.text(t[2],x+5,y+21.5);
+  });
+  y+=34;
+
+  const sectionTitle=(t,need)=>{if(y>277-(need||40)){doc.addPage();y=22}doc.setFont("helvetica","bold");doc.setFontSize(11.5);doc.setTextColor(...INK);doc.text(t,L,y);y+=3;doc.setFont("helvetica","normal")};
+  const tableBase={margin:{left:L,right:L},theme:"plain",styles:{font:"helvetica",fontSize:9.5,textColor:INK,cellPadding:{top:2.4,bottom:2.4,left:2,right:2},lineColor:LINE},
+    headStyles:{fontStyle:"bold",fontSize:7.5,textColor:MUTED,lineWidth:{bottom:0.3}},columnStyles:{1:{halign:"right",cellWidth:40}},
+    bodyStyles:{lineWidth:{bottom:0.1}},
+    didParseCell:d=>{if(d.row.raw&&d.row.raw._total){d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=TINT;d.cell.styles.lineWidth=0}}};
+  const totalRow=(a,b)=>{const row=[a,b];row._total=true;return row};
+
+  // savings
+  if(q.pdfSavings!==false && r.inv>0 && r.hourly>0){
+    sectionTitle("What this means for your team",68);
+    doc.autoTable({...tableBase,startY:y,head:[["BASED ON THE FIGURES YOU SHARED","PER MONTH"]],
+      body:[
+        ["Supplier invoices processed",n0(r.inv)],
+        ["Time spent on supplier invoices today",n0(r.hToday)+" hours"],
+        ["Estimated time with Supvoices",n0(r.hNew)+" hours"],
+        ["Time saved","+"+n0(r.hSaved)+" hours ("+n1(r.fte)+" FTE)"],
+        ["Value of time saved at "+m(r.hourly,2)+" per hour",m(r.saved)],
+        totalRow(isFinite(r.payback)?"Setup pays back in":"Net monthly benefit",isFinite(r.payback)?(r.payback<1?"under 1 month":n1(r.payback)+" months"):m(r.net))
+      ]});
+    y=doc.lastAutoTable.finalY+9;
+  }
+
+  // monthly
+  sectionTitle("Monthly subscription",20+r.lines.length*8);
+  const mb=r.lines.map(l=>[l[0],m(l[1],l[2]?2:0)]);
+  if(r.discPct) mb.push(["Discount "+n1(r.discPct)+"%"+(r.termPct?" (includes "+r.termPct+"% for "+q.term+"-month term)":""),"-"+m(r.gross-r.monthly)]);
+  mb.push(totalRow("Monthly fee",m(r.monthly)));
+  doc.autoTable({...tableBase,startY:y,head:[["ITEM","AMOUNT"]],body:mb});
+  y=doc.lastAutoTable.finalY+9;
+
+  // setup
+  sectionTitle("Setup and onboarding (one-off)",20+r.setup.length*8);
+  const sb=r.setup.map(l=>[l[0],m(l[1])]);
+  if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
+  sb.push(totalRow("Setup fee",m(r.setupNet)));
+  doc.autoTable({...tableBase,startY:y,head:[["ITEM","AMOUNT"]],body:sb});
+  y=doc.lastAutoTable.finalY+9;
+
+  // what's included
+  const inc=["Automatic matching of supplier invoices against "+({tourplan:"TourPlan",nitro:"Nitro",other:"your reservation system",none:"your booking records"}[q.ressys])+" bookings",
+    "Differences flagged with the reason, sent to the right person to resolve"];
+  if(num(q.statements)) inc.push("Monthly statements from "+n0(num(q.statements))+" suppliers split and matched line by line");
+  if(num(q.training)) inc.push(n0(num(q.training))+" remote training sessions of about 90 minutes");
+  if(q.sharepoint) inc.push("Invoices and matching history filed in your own SharePoint, with weekly Excel export");
+  inc.push(Math.max(num(q.users),p.usersIncl)+" user accounts, email support during office hours");
+  if(y>240){doc.addPage();y=22}
+  sectionTitle("Included"); y+=3;
+  doc.setFont("helvetica","normal"); doc.setFontSize(9.5); doc.setTextColor(...INK);
+  inc.forEach(t=>{const tl=doc.splitTextToSize(t,CW-7); if(y+tl.length*4.5>277){doc.addPage();y=22}
+    doc.setFillColor(...GREEN); doc.circle(L+1.3,y-1.2,1,"F"); doc.text(tl,L+6,y); y+=tl.length*4.5+1.5});
+  y+=5;
+
+  // terms
+  const terms=String(seller.terms||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  if(q.pdfSavings!==false && r.inv>0 && r.hourly>0) terms.push("Savings are estimates based on the volumes, times and staff costs discussed and are not a guarantee.");
+  if(terms.length){
+    if(y>250){doc.addPage();y=22}
+    sectionTitle("Terms"); y+=3;
+    doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+    terms.forEach(t=>{const tl=doc.splitTextToSize(t,CW-5); if(y+tl.length*4>277){doc.addPage();y=22}
+      doc.text("–",L,y); doc.text(tl,L+5,y); y+=tl.length*4+1.2});
+    y+=6;
+  }
+
+  // acceptance
+  if(y>250){doc.addPage();y=22}
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.3);
+  doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+  doc.text("Accepted for "+(q.company||"the client"),L,y);
+  doc.line(L,y+14,L+75,y+14); doc.line(L+90,y+14,R,y+14);
+  doc.text("Name and signature",L,y+18.5); doc.text("Date",L+90,y+18.5);
+
+  // footer
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.line(L,284,R,284);
+    doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.setFont("helvetica","normal");
+    doc.text([seller.company,seller.vat&&("VAT "+seller.vat),seller.email,seller.web].filter(Boolean).join("   ·   "),L,289);
+    doc.text(no+"   ·   Page "+i+" of "+pages,R,289,{align:"right"});
+  }
+  doc.setProperties({title:"Supvoices quote "+no+" – "+(q.company||""),author:seller.name||"",subject:"Quote",creator:"Supvoices Quote Builder"});
+  return doc;
+}
+function pdfName(q){return "Supvoices-Quote-"+quoteNo(q)+"-"+slug(q.company)+".pdf"}
+function downloadPdf(q,p){
+  if(!window.jspdf){toast("PDF tools didn't load. Check your connection and reload.");return}
+  try{const doc=buildPdf(q,p); saveBlob(doc.output("blob"),pdfName(q)); toast("PDF downloaded")}
+  catch(e){console.error(e);toast("Couldn't make the PDF: "+e.message)}
+}
+$("pdfBtn").onclick=()=>downloadPdf(state,prices);
+$("previewPdfBtn").onclick=()=>{
+  if(!window.jspdf){toast("PDF tools didn't load");return}
+  const url=URL.createObjectURL(buildPdf(state,prices).output("blob"));
+  const w=window.open(url,"_blank"); if(!w) location.href=url;
+};
+try{
+  const testFile=new File(["x"],"t.pdf",{type:"application/pdf"});
+  if(navigator.canShare&&navigator.canShare({files:[testFile]})) $("sharePdfBtn").hidden=false;
+}catch(e){}
+$("sharePdfBtn").onclick=async()=>{
+  try{const f=new File([buildPdf(state,prices).output("blob")],pdfName(state),{type:"application/pdf"});
+    await navigator.share({files:[f],title:"Supvoices quote",text:"Supvoices quote for "+(state.company||"")});
+  }catch(e){if(e.name!=="AbortError")toast("Sharing didn't work. Use Download PDF.")}
+};
+window.__svq={buildPdf,calc,get state(){return state},get prices(){return prices}};
+
+fillForm(); fillPrices(); fillSeller(); renderSaved(); render();
+const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
