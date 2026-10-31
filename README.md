@@ -24,7 +24,7 @@ There's no server and no database. Everything runs in the browser and quotes are
 - Monthly subscription fee with an allowance of Processed Invoices, invoiced monthly in advance
 - Processed Invoices above the allowance at a per-invoice price, invoiced monthly in arrears
 - 12-month initial term (or 24), renewing for 12 months unless 3 months' notice is given
-- Payment within 30 days, prices exclude VAT, unlimited named users, SharePoint records included
+- Payment within 7 days of the invoice date, prices exclude VAT, unlimited named users, SharePoint records included
 
 ## Use it
 Open the GitHub Pages URL on your phone, then use **Share → Add to Home Screen** (iPhone) or
