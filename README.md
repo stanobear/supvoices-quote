@@ -23,6 +23,11 @@ There's no server and no database. Everything runs in the browser and quotes are
 - One-off setup fee, invoiced on signature
 - Monthly subscription fee with an allowance of Processed Invoices, invoiced monthly in advance
 - Processed Invoices above the allowance at a per-invoice price, invoiced monthly in arrears
+- Accounting connection (optional):
+  - **Xero posting** (standard add-on, fixed setup + monthly): approved bills and credit notes are posted to Xero,
+    with a daily integrity check across Supvoices, the reservation system and Xero. Approval happens in Supvoices.
+  - **Approval in Xero** (custom): bills are approved in Xero and their status comes back to Supvoices. Built from
+    an Integration Specification signed by both parties; setup covers a set number of days, extra days at a day rate.
 - 12-month initial term (or 24), renewing for 12 months unless 3 months' notice is given
 - Payment within 7 days of the invoice date, prices exclude VAT, unlimited named users, SharePoint records included
 

@@ -229,6 +229,9 @@ details li span{color:var(--muted)}
         <span class="q">Renews for 12 months unless 3 months' notice is given.</span></div>
       <div class="f"><label for="training">Training sessions in setup</label><input id="training" type="number" min="0" inputmode="numeric" data-k="training">
         <span class="q">Remote, about 2 hours each.</span></div>
+      <div class="f"><label for="acct">Accounting system connection</label>
+        <select id="acct" data-k="acct"><option value="none">None</option><option value="xeroPost">Xero posting</option><option value="xeroAppr">Approval in Xero (custom)</option></select>
+        <span class="q" id="acctHint">Recommended: approve in Supvoices, post approved bills to Xero.</span></div>
       <div class="f"><label for="discSetup">Discount on setup</label><div class="suffix"><input id="discSetup" type="number" min="0" max="100" inputmode="decimal" data-k="discSetup"><span>%</span></div></div>
       <div class="f"><label for="discMonthly">Discount on monthly fee</label><div class="suffix"><input id="discMonthly" type="number" min="0" max="100" inputmode="decimal" data-k="discMonthly"><span>%</span></div>
         <span class="q">For the whole term.</span></div>
@@ -333,6 +336,12 @@ details li span{color:var(--muted)}
       <li>Do you get credit notes, deposits or pro formas? <span>Credit notes count towards the allowance.</span></li>
       <li>Where are invoices stored today, and could an auditor find one in a minute?</li>
       <li>Do you use Microsoft 365 with SharePoint and Teams? Who in IT would connect it?</li>
+      <li>Which accounting system do you use? <span>Xero is supported; others on request.</span></li>
+      <li>Does TourPlan already send supplier invoices to Xero? <span>If yes, decide which system creates the bill, or you'll get duplicates.</span></li>
+      <li>Where are supplier bills approved today, and by whom? <span>Steer towards approval in Supvoices.</span></li>
+      <li>How are suppliers paid: Xero batch payments, the banking app, something else?</li>
+      <li>Do people edit or delete bills in Xero after they're posted?</li>
+      <li>Which account codes, tax rates and tracking categories do supplier bills use? Any in other currencies?</li>
       <li>Do you hire temporary staff in peak season for the purchase ledger?</li>
       <li>How many separate companies process supplier invoices?</li>
       <li>Who signs off on new tools, and what would they need to see?</li>
@@ -407,6 +416,19 @@ details li span{color:var(--muted)}
   </div>
 
   <div class="block">
+    <div class="bh"><h2>Accounting connection</h2><span class="tag">Xero</span></div>
+    <p class="note" style="margin:0"><b>Xero posting</b> is the standard add-on: approved bills and credit notes are posted to Xero, with a daily integrity check. <b>Approval in Xero</b> is custom work, built from a signed Integration Specification.</p>
+    <div class="grid">
+      <div class="f"><label for="p_xpSetup">Xero posting, setup</label><input id="p_xpSetup" type="number" step="50" data-p="xpSetup" inputmode="decimal"></div>
+      <div class="f"><label for="p_xpMonth">Xero posting, per month</label><input id="p_xpMonth" type="number" step="5" data-p="xpMonth" inputmode="decimal"></div>
+      <div class="f"><label for="p_xaSetup">Approval in Xero, setup from</label><input id="p_xaSetup" type="number" step="100" data-p="xaSetup" inputmode="decimal"></div>
+      <div class="f"><label for="p_xaDays">Days included in that setup</label><input id="p_xaDays" type="number" data-p="xaDays" inputmode="numeric"></div>
+      <div class="f"><label for="p_xaMonth">Approval in Xero, per month</label><input id="p_xaMonth" type="number" step="5" data-p="xaMonth" inputmode="decimal"></div>
+      <div class="f"><label for="p_dayRate">Day rate for extra work</label><input id="p_dayRate" type="number" step="25" data-p="dayRate" inputmode="decimal"></div>
+    </div>
+  </div>
+
+  <div class="block">
     <div class="bh"><h2>Your company</h2><span class="tag">Printed on the PDFs</span></div>
     <div class="grid">
       <div class="f"><label for="s_company">Registered company name</label><input id="s_company" data-s="company"></div>
@@ -477,14 +499,15 @@ details li span{color:var(--muted)}
 (function(){
 /* ================= defaults ================= */
 const DEFAULT_PRICES={base:290,incl:150,t1to:500,t1:0.95,t2to:1500,t2:0.70,t3:0.45,overPrem:0,entity:100,min:290,d12:0,d24:10,eaPct:20,valueMax:35,
-  onb:900,rsTp:600,rsNi:600,rsOt:1500,spSetup:400,supp:100,stmt:150,trainIncl:2,train:250};
+  onb:900,rsTp:600,rsNi:600,rsOt:1500,spSetup:400,supp:100,stmt:150,trainIncl:2,train:250,
+  xpSetup:750,xpMonth:75,xaSetup:3000,xaDays:4,xaMonth:250,dayRate:600};
 const DEFAULT_SELLER={company:"Supvoices Ltd",companyNo:"",vat:"",web:"supvoices.com",address:"",
   email:"hello@supvoices.com",billing:"accounts@supvoices.com",notices:"legal@supvoices.com",region:"United Kingdom (London)",
   name:"",title:"",docVersion:"1.0",legalBase:"supvoices.com/legal",valid:30,payDays:7,noticeMonths:3,seqNext:1,terms:""};
 const today=()=>new Date().toISOString().slice(0,10);
 const BLANK={company:"",contact:"",contactEmail:"",qdate:today(),currency:"GBP",ressys:"tourplan",users:2,entities:1,
   inv:0,peak:0,suppliers:0,statements:0,minBase:8,minFile:2,pctProb:25,minProb:20,salary:30000,hoursYear:1700,
-  allowance:"",term:"12",training:2,discSetup:0,discMonthly:0,eaOn:false,eaPct:"",
+  allowance:"",term:"12",training:2,acct:"none",discSetup:0,discMonthly:0,eaOn:false,eaPct:"",
   pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true,
   legalName:"",companyNo:"",taxId:"",region:"",address:"",billingContact:"",noticesEmail:"",startDate:"",goLive:"",signName:"",signTitle:"",poNumber:"",specialTerms:""};
 const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",contact:"Sample contact",inv:420,peak:900,suppliers:380,statements:4,users:3,minBase:9,pctProb:30,minProb:25,salary:32000,_sample:true});
@@ -513,6 +536,9 @@ const n0=v=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:0}).format(v);
 const n1=v=>new Intl.NumberFormat("en-GB",{maximumFractionDigits:1}).format(v);
 const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 const CURNAME={GBP:"pounds sterling",EUR:"euros",USD:"US dollars"};
+const ACCT={none:{short:"",label:"None"},
+  xeroPost:{short:"Xero posting",label:"Xero posting"},
+  xeroAppr:{short:"Approval in Xero",label:"Approval in Xero"}};
 const RES={tourplan:"TourPlan",nitro:"Nitro",other:"Other system (to be agreed)",none:"None"};
 function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2000)}
 
@@ -543,11 +569,15 @@ function calc(s,p){
   const u=usageCost(alw,p);
   const lines=[["Platform, "+n0(p.incl)+" invoices included",p.base]];
   u.parts.forEach(([n,pr])=>lines.push([n0(n)+" invoices × "+money(pr,s.currency,2),n*pr,1]));
+  let core=lines.reduce((a,l)=>a+l[1],0);
+  if(core<p.min){lines.push(["Minimum monthly fee top-up",p.min-core]);core=p.min}
+  const subGross=core;
   const extraEnt=Math.max(0,Math.round(num(s.entities)||1)-1);
   if(extraEnt) lines.push([extraEnt+" extra "+(extraEnt>1?"companies":"company")+" × "+money(p.entity,s.currency),extraEnt*p.entity]);
-  let gross=lines.reduce((a,l)=>a+l[1],0);
-  if(gross<p.min){lines.push(["Minimum monthly fee top-up",p.min-gross]);gross=p.min}
-  const subGross=gross-extraEnt*p.entity;
+  const acct=ACCT[s.acct]?s.acct:"none";
+  const acctMonth=acct==="xeroPost"?num(p.xpMonth):acct==="xeroAppr"?num(p.xaMonth):0;
+  if(acctMonth) lines.push([ACCT[acct].short,acctMonth]);
+  const gross=lines.reduce((a,l)=>a+l[1],0);
   const termPct=s.term==="24"?p.d24:p.d12;
   const discPct=Math.min(100,termPct+num(s.discMonthly));
   const monthlyStd=gross*(1-discPct/100);
@@ -565,6 +595,8 @@ function calc(s,p){
   if(p.spSetup) setup.push(["SharePoint records setup",p.spSetup]);
   const blocks=Math.ceil(num(s.suppliers)/100); if(blocks&&p.supp) setup.push(["Import of "+n0(num(s.suppliers))+" suppliers",blocks*p.supp]);
   const st=num(s.statements); if(st&&p.stmt) setup.push(["Statement matching rules for "+st+" supplier"+(st>1?"s":""),st*p.stmt]);
+  if(acct==="xeroPost"&&num(p.xpSetup)) setup.push(["Xero connection and mapping",num(p.xpSetup)]);
+  if(acct==="xeroAppr"&&num(p.xaSetup)) setup.push(["Approval in Xero: design, specification and build (up to "+n0(num(p.xaDays))+" days)",num(p.xaSetup)]);
   const trainN=Math.max(0,Math.round(num(s.training)));
   const tr=Math.max(0,trainN-p.trainIncl); if(tr) setup.push([tr+" extra training session"+(tr>1?"s":""),tr*p.train]);
   const setupGross=setup.reduce((a,l)=>a+l[1],0);
@@ -575,7 +607,7 @@ function calc(s,p){
   const valuePct=saved>0?(monthly+expOver)/saved*100:Infinity;
   const perInv=alw>0?monthly/alw:0;
   const year1=(monthly+expOver)*12+setupNet;
-  return {hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
+  return {acct,acctMonth,hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
     setup,setupGross,setupNet,trainN,net,payback,valuePct,perInv,year1,inv};
 }
 
@@ -629,6 +661,9 @@ function render(){
 
   $("allowanceHint").textContent=num(state.allowance)>0?"Auto would be "+n0(r.autoAlw)+".":"Auto: "+n0(r.autoAlw)+" (volume rounded up to the next 50).";
   $("eaPctRow").hidden=!state.eaOn;
+  $("acctHint").textContent={none:"Recommended: approve in Supvoices, post approved bills to Xero.",
+    xeroPost:"Approved bills and credit notes go to Xero, with a daily integrity check.",
+    xeroAppr:"Custom: needs a signed Integration Specification. Extra days at "+money(num(prices.dayRate),c)+"."}[r.acct];
   $("eaPct").placeholder=String(prices.eaPct);
   $("bMonthly").textContent=money(r.monthly,c);
   $("bSetup").textContent=money(r.setupNet,c);
@@ -748,7 +783,8 @@ function summaryText(s,r){
     "Invoices above the allowance: "+money(r.overPrice,c,2)+" each",
     "Setup (one-off): "+money(r.setupNet,c),
     "First-year total: "+money(r.year1,c),
-    "Initial term: "+s.term+" months","",
+    "Initial term: "+s.term+" months",
+    s.acct&&s.acct!=="none"?"Accounting connection: "+ACCT[s.acct].label:null,"",
     "Invoice work today: "+n0(r.hToday)+" h/month ("+money(r.costToday,c)+")",
     "Estimated saving: "+n0(r.hSaved)+" h/month ("+money(r.saved,c)+", "+n1(r.fte)+" FTE)",
     isFinite(r.payback)?"Setup pays back in "+n1(r.payback)+" months":null,"",
@@ -978,6 +1014,7 @@ function buildPdf(q,p){
   k.h2("Monthly subscription",60);
   const mb=[["Subscription with an allowance of "+n0(r.alw)+" Processed Invoices per calendar month",m(r.subGross)]];
   if(r.extraEnt) mb.push([r.extraEnt+" additional "+(r.extraEnt>1?"companies":"company")+" covered",m(r.extraEnt*p.entity)]);
+  if(r.acctMonth) mb.push([acctLong(q),m(r.acctMonth)]);
   if(r.discPct) mb.push(["Discount "+n1(r.discPct)+"%"+(r.termPct?" (includes "+r.termPct+"% for a "+q.term+"-month term)":""),"-"+m(r.gross-r.monthlyStd)]);
   if(r.eaPct){mb.push(tot("Monthly fee from month 13",m(r.monthlyStd)));mb.push(["Early-adopter reduction "+n1(r.eaPct)+"%, first 12 months","-"+m(r.monthlyStd-r.monthly)]);mb.push(tot("Monthly fee, months 1 to 12",m(r.monthly)))}
   else mb.push(tot("Monthly fee",m(r.monthly)));
@@ -998,6 +1035,8 @@ function buildPdf(q,p){
     "Matching of supplier invoices against your vouchers or purchase orders"+(q.ressys==="tourplan"||q.ressys==="nitro"?" in "+RES[q.ressys]:""),
     "Differences explained, with queries in Microsoft Teams and supplier correction emails",
     "Your records in your own SharePoint: every invoice, its matching, queries and history, plus a weekly export",
+    "Approval of invoices in Supvoices, with every decision logged and reversible",
+    ...(r.acct!=="none"?[acctLong(q)]:[]),
     "Unlimited named users",
     "Support and service levels as set out in Service Levels and Support"]);
   k.h2("Onboarding included in the setup fee",40); k.y+=3;
@@ -1010,6 +1049,7 @@ function buildPdf(q,p){
     "The setup fee is invoiced on signature, the monthly fee monthly in advance, and invoices above the allowance monthly in arrears. Unused allowance does not carry over.",
     "A Processed Invoice is each supplier invoice or credit note extracted by the service, counted once.",
     "Invoices are payable within "+(seller.payDays||7)+" days of the invoice date. Prices exclude VAT.",
+    ...(r.acct==="xeroAppr"?[apprTerm(p,q.currency)]:[]),
     "This quote is subject to the Supvoices Subscription Terms, Data Processing Agreement, Service Levels and Support, and Acceptable Use Policy (version "+v+"), published at "+base+"."];
   String(seller.terms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean).forEach(t=>terms.push(t));
   if(q.pdfSavings!==false&&r.inv>0&&r.hourly>0) terms.push("Savings are estimates based on the volumes, times and staff costs discussed and are not a guarantee.");
@@ -1026,6 +1066,15 @@ function buildPdf(q,p){
   doc.setProperties({title:"Supvoices quote "+no+" - "+(q.company||""),author:seller.company||"",subject:"Quote",creator:"Supvoices Quote Builder"});
   return doc;
 }
+function rsName(q){return q.ressys==="tourplan"||q.ressys==="nitro"?RES[q.ressys]:"your reservation system"}
+function acctLong(q){
+  if(q.acct==="xeroPost") return "Xero posting: approved bills and credit notes posted to Xero, with a daily integrity check across Supvoices, "+rsName(q)+" and Xero";
+  if(q.acct==="xeroAppr") return "Approval in Xero: bills created in Xero for approval there, with their status returned to Supvoices, as set out in the Integration Specification";
+  return "";
+}
+function apprTerm(p,cur){
+  return "Approval in Xero: the workflow is set out in an Integration Specification that both parties agree and sign before the build starts. The setup fee covers up to "+n0(num(p.xaDays))+" days of design, build and testing. Further days, and changes requested after the Integration Specification is signed, are charged at "+pdfText(money(num(p.dayRate),cur||state.currency))+" per day, only with the Customer's prior written approval.";
+}
 function onboardingItems(q,r){
   const rs=q.ressys==="tourplan"||q.ressys==="nitro"?RES[q.ressys]:"your reservation system";
   const items=[
@@ -1033,6 +1082,8 @@ function onboardingItems(q,r){
     q.ressys==="none"?"Import of your open bookings or purchase orders.":"Connection to "+rs+" and first import of open vouchers or purchase orders.",
     "Connection to your SharePoint for records, using the setup guide for your IT team (your IT team completes the Microsoft 365 steps).",
     "Import of your supplier list"+(num(q.suppliers)?" ("+n0(num(q.suppliers))+" suppliers)":"")+" and matching rules (tolerance buffers, auto-post settings)."];
+  if(q.acct==="xeroPost") items.push("Connection to your Xero organisation, and mapping of account codes, tax rates, tracking categories and supplier contacts, which you confirm before the first bill is posted.");
+  if(q.acct==="xeroAppr") items.push("A workshop to design the approval workflow in Xero, a written Integration Specification for both parties to sign, and the build and acceptance testing it describes.");
   if(num(q.statements)) items.push("Statement matching rules for "+n0(num(q.statements))+" supplier"+(num(q.statements)>1?"s":"")+" that send monthly statements.");
   items.push(r.trainN+" remote training session"+(r.trainN===1?"":"s")+" for users and supervisors.");
   items.push("Support during your first month of live use.");
@@ -1075,6 +1126,7 @@ function buildOrderPdf(q,p){
     ["Companies / entities covered",ents+(ents>1?" companies":" company")+(custName&&ents===1?": "+custName:"")],
     ["Users","Unlimited named Users"],
     ["Reservation system connection",RES[q.ressys]||""],
+    ["Accounting system connection",q.acct==="xeroPost"?acctLong(q):q.acct==="xeroAppr"?acctLong(q):"None"],
     ["Records in your Microsoft 365","Included: invoices, matching, queries and history filed in your SharePoint, plus a weekly export"],
     ["Queries and supplier corrections","Included: Microsoft Teams queries and supplier correction emails"],
     ["Monthly invoice allowance",n0(r.alw)+" Processed Invoices per calendar month"],
@@ -1090,8 +1142,10 @@ function buildOrderPdf(q,p){
   fees.push(["Invoices above the allowance",m(r.overPrice,2)+" per Processed Invoice","Monthly in arrears"]);
   fees.push(["Optional: extra training session (remote, 2 hours)",m(p.train),"When delivered"]);
   fees.push(["Optional: extra company / entity",m(p.entity)+" per month","Monthly in advance"]);
+  if(r.acct==="xeroAppr") fees.push(["Additional integration days (only with your written approval)",m(p.dayRate)+" per day","When delivered"]);
   k.table({head:[["FEE","AMOUNT","WHEN INVOICED"]],columnStyles:{0:{cellWidth:"auto"},1:{cellWidth:44},2:{cellWidth:46}},body:fees});
   if(r.extraEnt) k.para("The monthly subscription fee includes "+r.extraEnt+" additional "+(r.extraEnt>1?"companies":"company")+" at "+m(p.entity)+" per month each.",{size:8.8,color:MUTED,after:1.5});
+  if(r.acctMonth) k.para("The monthly subscription fee includes "+(r.acct==="xeroPost"?"Xero posting":"Approval in Xero")+" at "+m(r.acctMonth)+" per month, and the setup fee includes its setup.",{size:8.8,color:MUTED,after:1.5});
   if(r.discPct) k.para("The monthly subscription fee includes a discount of "+n1(r.discPct)+"%"+(r.termPct?" for the "+q.term+"-month initial term":"")+".",{size:8.8,color:MUTED,after:1.5});
   if(num(q.discSetup)) k.para("The setup fee includes a discount of "+num(q.discSetup)+"% (full price "+m(r.setupGross)+").",{size:8.8,color:MUTED,after:1.5});
   k.para("All prices are in "+(CURNAME[c]||c)+" and exclude VAT. Invoices are payable within "+(seller.payDays||7)+" days of the invoice date. A Processed Invoice is each supplier invoice or credit note extracted by the Service, counted once (see the Subscription Terms)."+(q.poNumber?" Customer purchase order number: "+q.poNumber+".":""),{size:8.8,color:MUTED,after:6});
@@ -1108,19 +1162,21 @@ function buildOrderPdf(q,p){
   // 5 onboarding
   k.h2("5. Onboarding included in the setup fee",50); k.y+=3;
   k.list(onboardingItems(q,r),{numbered:true});
-  k.para("You provide: reservation system access details, a contact in your IT team for the Microsoft 365 steps, your supplier list, and a sample of recent supplier invoices.",{size:9,after:6});
+  k.para("You provide: reservation system access details, a contact in your IT team for the Microsoft 365 steps, your supplier list, and a sample of recent supplier invoices"+(r.acct!=="none"?"; an adviser login to your Xero organisation, your chart of accounts, tax rates and tracking categories, and a decision on whether "+rsName(q)+" or Supvoices creates supplier bills in Xero":"")+".",{size:9,after:6});
 
   // 6 special terms
   k.h2("6. Special terms",24); k.y+=2;
   const sp=[];
   if(r.eaPct) sp.push(earlyAdopterTerm(q,r));
+  if(r.acct==="xeroAppr") sp.push(apprTerm(p,q.currency));
   String(q.specialTerms||"").split(/\n+/).map(t=>t.trim()).filter(Boolean).forEach(t=>sp.push(t));
   if(sp.length) k.list(sp,{numbered:sp.length>1,size:9}); else k.para("None.",{after:6});
 
   // 7 documents
   k.h2("7. Documents that form part of this agreement",62); k.y+=2;
   k.para("By signing, you accept the following documents in the versions shown. Each is published at the address listed, and earlier versions stay available there, so this Order Form always points to the exact text you accepted. A PDF copy of any of them is available on request.",{size:9,after:2});
-  k.table({head:[["DOCUMENT","VERSION","ADDRESS"]],columnStyles:{1:{cellWidth:20},2:{cellWidth:62}},body:docsList()});
+  const dl=docsList(); if(r.acct==="xeroAppr") dl.push(["Supvoices Integration Specification for this Customer","Once signed","Signed separately by both parties"]);
+  k.table({head:[["DOCUMENT","VERSION","ADDRESS"]],columnStyles:{1:{cellWidth:20},2:{cellWidth:62}},body:dl});
   k.para("If these documents and this Order Form disagree, the special terms in section 6 of this Order Form take priority, then the order set out in the Subscription Terms.",{size:9,after:6});
 
   // 8 signatures
