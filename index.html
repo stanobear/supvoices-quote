@@ -126,6 +126,11 @@ textarea{min-height:90px;resize:vertical}
 .doc b{font-family:var(--f-display);font-size:16px}
 .doc span{font-size:12.5px;color:var(--muted)}
 .warnline{font-size:12.5px;color:var(--warn)}
+.qbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px}
+.qbar-t{display:grid;min-width:0}
+.qbar-k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.qbar b{font-family:var(--f-mono);font-weight:600;font-size:15px;overflow-wrap:anywhere}
+.qbar.editing{border-color:var(--green)}
 .empty{text-align:center;color:var(--muted);padding:40px 16px}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
 details summary{padding:14px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
@@ -156,6 +161,10 @@ details li span{color:var(--muted)}
 
 <!-- QUOTE VIEW -->
 <section id="v-quote">
+  <div class="qbar">
+    <div class="qbar-t"><span class="qbar-k" id="qKind">New quote</span><b id="qNo">SV-2026-001</b></div>
+    <button class="btn small" id="newTop">+ New quote</button>
+  </div>
   <div class="sample" id="sampleBanner" hidden>
     <span>Example figures loaded. Clear them before the meeting.</span>
     <button class="btn small" id="clearSample">Start blank</button>
@@ -308,6 +317,7 @@ details li span{color:var(--muted)}
 
   <div class="row" style="margin-bottom:8px">
     <button class="btn primary" id="saveBtn">Save quote</button>
+    <button class="btn" id="saveNewBtn" hidden>Save as new quote</button>
   </div>
   <div class="docs">
     <div class="doc"><b>Quote</b><span>Prices, savings and what's included</span>
@@ -377,6 +387,7 @@ details li span{color:var(--muted)}
 <!-- SETTINGS VIEW -->
 <section id="v-prices" hidden>
   <div class="bh" style="margin-bottom:6px"><h2>Settings</h2><span class="tag">This device</span></div>
+  <p class="note" style="margin:0 0 6px">App version <b id="appVer"></b>. If this doesn't match the latest, close and reopen the app.</p>
   <p class="note" style="margin:0 0 14px">Draft prices. Change them to your real price list; every new quote uses them. Amounts are in the quote's currency.</p>
 
   <div class="block">
@@ -670,6 +681,10 @@ function render(){
   $("bSaved").textContent=money(r.saved,c);
   $("sampleBanner").hidden=!state._sample;
   $("saveBtn").textContent=editingId?"Update saved quote":"Save quote";
+  $("saveNewBtn").hidden=!editingId;
+  $("qKind").textContent=editingId?"Editing saved quote":"New quote, not saved yet";
+  $("qNo").textContent=(state.quoteNo||nextNo()+" (next)")+(state.company?" · "+state.company:"");
+  document.querySelector(".qbar").classList.toggle("editing",!!editingId);
   const miss=[!seller.companyNo&&"company number",!seller.address&&"registered office"].filter(Boolean);
   $("orderWarn").hidden=!miss.length;
   $("orderWarn").textContent=miss.length?"Your "+miss.join(" and ")+" print as blanks. Add them in Settings.":"";
@@ -757,7 +772,13 @@ $("ghSave").onclick=()=>{const v=$("ghToken").value.trim();if(!v){toast("Paste t
 $("ghForget").onclick=()=>{try{localStorage.removeItem("svq-gh")}catch(e){}showDefaultsInfo();toast("Token removed")};
 const blankState=()=>Object.assign({},BLANK,{qdate:today()});
 $("clearSample").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo(0,0)};
-$("newBtn").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote")};
+function newQuote(){state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();show("quote");window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote "+nextNo())}
+$("newBtn").onclick=newQuote;
+$("newTop").onclick=newQuote;
+$("saveNewBtn").onclick=()=>{
+  delete state._id;delete state.quoteNo;editingId=null;
+  const {ok}=persistCurrent();toast(ok?"Saved as new quote "+state.quoteNo:"Couldn't save on this device");
+};
 $("toResult").onclick=()=>{show("quote");$("result").scrollIntoView({behavior:"smooth",block:"start"})};
 
 function persistCurrent(){
@@ -1207,7 +1228,8 @@ function downloadPdf(q,p,kind){
   catch(e){console.error(e);toast("Couldn't make the PDF: "+e.message)}
 }
 // The current quote gets its number the first time a PDF goes out, so both documents match.
-function currentForPdf(){if(!state.quoteNo){assignNo(state);LS.set("svq-draft",state);if(editingId)persistCurrent();render()}return state}
+// A quote that goes out as a PDF is always saved, so its number and figures are kept.
+function currentForPdf(){persistCurrent();return state}
 function previewPdf(kind){
   if(!window.jspdf){toast("PDF tools didn't load");return}
   const url=URL.createObjectURL(KINDS[kind].build(state,prices).output("blob"));
@@ -1235,6 +1257,7 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
 
+const APP_VERSION="2026-11-02";$("appVer").textContent=APP_VERSION;
 window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
 fillForm(); fillPrices(); fillSeller(); renderSaved(); render(); showDefaultsInfo(); loadRepoDefaults();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
