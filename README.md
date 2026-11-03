@@ -19,6 +19,19 @@ There's no server and no database. Everything runs in the browser and quotes are
 - Settings for prices, your company details, legal document version and quote numbering
 - Works offline once opened, and installs to the home screen
 
+## Online signing of the order form
+From the quote, tap **Send to sign**. The client gets a link, reads the order form on their phone,
+confirms their email with a one-time code and signs (drawn or typed). Both sides get the signed PDF
+by email, with the signature in the signature box and a signature certificate (audit trail) as the
+last page.
+
+- `sign.html` is the client's signing page.
+- `supabase/` holds the database section (`sales` schema, private `sales-docs` bucket) and two
+  edge functions, `sign-admin` (used by the quote app, protected by a sales key) and `sign-public`
+  (used by the signing page, addressed by the secret link).
+- Email goes out from `sales@supvoices.com` through Microsoft Graph.
+- One-time setup: [docs/online-signing-setup.md](docs/online-signing-setup.md).
+
 ## Commercial model (matches the legal pack)
 - One-off setup fee, invoiced on signature
 - Monthly subscription fee with an allowance of Processed Invoices, invoiced monthly in advance

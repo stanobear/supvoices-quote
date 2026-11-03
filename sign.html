@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>Sign your Supvoices order form</title>
+<meta name="theme-color" content="#14233C">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@600&display=swap">
+<style>
+:root{
+  --navy:#14233C;--navy2:#24395E;--green:#2BB673;--green-ink:#17804C;--bg:#EEF2F6;--card:#FFFFFF;--fg:#14233C;--muted:#5B6B82;
+  --line:#D6DEE8;--field:#F7F9FB;--bad:#B42318;--bad-bg:#FDECEA;--ok-bg:#E6F5EC;--on-navy:#FFFFFF;--on-navy-muted:#B9C5D6;
+  --f-display:"Space Grotesk",system-ui,sans-serif;--f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1726;--card:#16223A;--fg:#E6ECF4;--muted:#93A3BB;--line:#2A3A57;--field:#1C2A45;--bad:#FF8A80;--bad-bg:#3A1E1E;--ok-bg:#15352A;--green-ink:#5FD49A;--navy:#0A1322;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+header{background:var(--navy);color:var(--on-navy)}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header .wrap{display:flex;align-items:center;gap:10px;padding-block:14px}
+header b{font:600 18px var(--f-display)}
+header span{color:var(--on-navy-muted);font-size:13px}
+main{padding-block:18px 40px;display:grid;gap:14px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:22px}
+h2{font-size:17px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.rows{display:grid;border-top:1px solid var(--line)}
+.rows div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.rows div span:first-child{color:var(--muted)}
+.rows div span:last-child{font-family:var(--f-mono);font-weight:500;text-align:right}
+.step{display:flex;align-items:center;gap:10px}
+.num{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:600 13px var(--f-body);background:var(--line);color:var(--fg);flex:none}
+.done .num{background:var(--green);color:#fff}
+label{font-weight:500;font-size:14px}
+.f{display:grid;gap:5px}
+input[type=text],input[type=email],input[inputmode]{width:100%;font:16px var(--f-body);color:var(--fg);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:11px 12px;min-height:46px}
+#code{font:600 24px var(--f-mono);letter-spacing:8px;text-align:center}
+.btn{font:600 16px var(--f-body);border-radius:10px;padding:13px 18px;min-height:48px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer;width:100%}
+.btn.primary{background:var(--navy2);border-color:var(--navy2);color:#fff}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.link{border:0;background:none;color:var(--green-ink);width:auto;padding:4px 0;min-height:0;font-size:14px}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1;font:500 14px var(--f-body);padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--field);color:var(--fg);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--navy2);border-color:var(--navy2);color:#fff}
+.pad{position:relative;border:1px dashed var(--muted);border-radius:10px;background:#fff;touch-action:none}
+canvas{display:block;width:100%;height:170px;border-radius:10px}
+.pad .hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:#8a97ab;pointer-events:none}
+.pad .line{position:absolute;left:14px;right:14px;bottom:34px;border-bottom:1px solid #c7d0dc;pointer-events:none}
+.typed{font:italic 30px "Brush Script MT","Segoe Script","Snell Roundhand",cursive;padding:18px 12px;min-height:84px;border:1px dashed var(--muted);border-radius:10px;background:#fff;color:#14233C;overflow-wrap:anywhere}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:400}
+.check input{width:22px;height:22px;margin-top:1px;accent-color:var(--green);flex:none}
+.msg{border-radius:8px;padding:10px 12px;font-size:14px}
+.msg.err{background:var(--bad-bg);color:var(--bad)}
+.msg.ok{background:var(--ok-bg);color:var(--green-ink)}
+.big-tick{width:56px;height:56px;border-radius:50%;background:var(--green);display:grid;place-items:center}
+footer{font-size:12px;color:var(--muted);text-align:center;padding-bottom:24px}
+</style>
+</head>
+<body>
+<header><div class="wrap"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="4" fill="none" stroke="#B9C5D6" stroke-width="1.5"/><path d="M5 8h12M5 12h6" stroke="#B9C5D6" stroke-width="1.5"/><path d="M11 15l2.5 2.5L18 12" stroke="#2BB673" stroke-width="2" fill="none" stroke-linecap="round"/></svg><b>Supvoices</b><span>Order form signing</span></div></header>
+
+<main class="wrap">
+  <div class="card" id="loading"><p class="muted" style="margin:0">Loading your order form…</p></div>
+  <div class="card" id="problem" hidden><h1>We can't open this link</h1><p id="problemText" style="margin:0"></p></div>
+
+  <div id="flow" hidden style="display:grid;gap:14px">
+    <div class="card">
+      <div class="muted small" id="who"></div>
+      <h1 id="title">Order form</h1>
+      <div class="rows" id="rows"></div>
+      <button class="btn" id="openPdf">Read the full order form (PDF)</button>
+      <p class="small muted" style="margin:0">Please read the whole order form before signing, including the documents it lists in section 7.</p>
+    </div>
+
+    <div class="card" id="stepCode">
+      <div class="step"><span class="num">1</span><h2>Confirm it's you</h2></div>
+      <p style="margin:0" id="codeIntro"></p>
+      <button class="btn primary" id="sendCode">Email me a code</button>
+      <div class="f" id="codeRow" hidden><label for="code">6-digit code</label>
+        <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+        <button class="btn link" id="resendCode">Send a new code</button></div>
+    </div>
+
+    <div class="card" id="stepSign">
+      <div class="step"><span class="num">2</span><h2>Sign</h2></div>
+      <div class="f"><label for="name">Full name</label><input type="text" id="name" autocomplete="name"></div>
+      <div class="f"><label for="jobTitle">Job title</label><input type="text" id="jobTitle" autocomplete="organization-title"></div>
+      <div class="f"><span style="font-weight:500;font-size:14px">Signature</span>
+        <div class="tabs" role="tablist"><button role="tab" id="tabDraw" aria-selected="true">Draw</button><button role="tab" id="tabType" aria-selected="false">Type</button></div>
+        <div id="drawBox"><div class="pad"><canvas id="pad" aria-label="Signature area: draw with your finger"></canvas><div class="line"></div><span class="hint">Sign with your finger</span></div>
+          <button class="btn link" id="clear">Clear</button></div>
+        <div id="typeBox" hidden><div class="typed" id="typed" aria-live="polite"></div><p class="small muted" style="margin:6px 0 0">Your typed name is used as your signature.</p></div>
+      </div>
+      <label class="check"><input type="checkbox" id="consent"><span id="consentText"></span></label>
+      <div class="msg err" id="err" hidden></div>
+      <button class="btn primary" id="sign">Sign the order form</button>
+    </div>
+  </div>
+
+  <div class="card" id="done" hidden>
+    <div class="big-tick" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h1 id="doneTitle">Signed. Thank you.</h1>
+    <p style="margin:0" id="doneText"></p>
+    <button class="btn primary" id="downloadSigned">Download the signed order form</button>
+  </div>
+  <footer class="wrap">Supvoices · Electronic signature with email confirmation and audit trail</footer>
+</main>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const params=new URLSearchParams(location.hash.slice(1));
+const token=params.get("t")||"";
+const base=(params.get("f")||"").replace(/\/$/,"");
+let info=null, mode="draw", codeSent=false;
+
+function problem(t){$("loading").hidden=true;$("flow").hidden=true;$("problem").hidden=false;$("problemText").textContent=t}
+async function call(action,extra={},asBlob=false){
+  const r=await fetch(base+"/functions/v1/sign-public",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action,token,...extra})});
+  if(asBlob){if(!r.ok)throw new Error((await r.json().catch(()=>({}))).error||"Couldn't load the PDF");return await r.blob()}
+  const j=await r.json().catch(()=>({error:"No answer from the server. Check your connection and try again."}));
+  if(!r.ok) throw new Error(j.error||"Something went wrong");
+  return j;
+}
+const err=t=>{$("err").textContent=t;$("err").hidden=!t};
+
+if(!token||!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(base)){problem("This signing link isn't complete. Open it again from the email, or ask Supvoices to send a new one.");return}
+
+(async()=>{
+  try{ info=await call("open") }catch(e){ problem(e.message); return }
+  $("loading").hidden=true;
+  if(info.status==="signed") return showDone(true);
+  if(info.status==="cancelled") return problem("This order form was withdrawn. Ask Supvoices for an up-to-date one.");
+  if(info.status==="expired") return problem("This signing link has expired. Ask Supvoices to send a new one.");
+  $("flow").hidden=false;
+  $("who").textContent=[info.company,"Order form "+info.quoteNo].filter(Boolean).join(" · ");
+  $("title").textContent=(info.summary&&info.summary.headline)||("Order form "+info.quoteNo);
+  const rows=(info.summary&&info.summary.rows)||[];
+  $("rows").innerHTML="";
+  rows.forEach(([a,b])=>{const d=document.createElement("div");const s1=document.createElement("span");s1.textContent=a;const s2=document.createElement("span");s2.textContent=b;d.append(s1,s2);$("rows").append(d)});
+  $("rows").hidden=!rows.length;
+  $("codeIntro").textContent="We'll email a 6-digit code to "+info.email+".";
+  $("name").value=info.signerName||"";$("jobTitle").value=info.signerTitle||"";
+  const company=info.company||"my company";
+  $("consentText").textContent="I'm authorised to sign for "+company+". "+company+" has had the opportunity to read the documents in section 7 of the order form and accepts them. I intend this electronic signature to have the same effect as my handwritten signature.";
+  updateTyped(); sizePad();
+})();
+
+/* PDF */
+async function openPdf(){
+  const w=window.open("","_blank");
+  try{const blob=await call("pdf",{},true);const url=URL.createObjectURL(blob);if(w)w.location=url;else location.href=url}
+  catch(e){if(w)w.close();alert(e.message)}
+}
+$("openPdf").onclick=openPdf;
+$("downloadSigned").onclick=async()=>{
+  try{const blob=await call("pdf",{},true);const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download="Supvoices-Order-Form-"+(info&&info.quoteNo||"")+"-signed.pdf";document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),5000)}catch(e){alert(e.message)}
+};
+
+/* code */
+async function sendCode(btn){
+  btn.disabled=true;const old=btn.textContent;btn.textContent="Sending…";
+  try{const j=await call("send-code");codeSent=true;$("codeRow").hidden=false;$("sendCode").hidden=true;
+    $("codeIntro").textContent="We've emailed a code to "+j.sentTo+". It works for "+j.minutes+" minutes. Check your junk folder if it hasn't arrived.";
+    $("code").focus();
+  }catch(e){$("codeIntro").textContent=e.message}
+  finally{btn.disabled=false;btn.textContent=old}
+}
+$("sendCode").onclick=()=>sendCode($("sendCode"));
+$("resendCode").onclick=()=>sendCode($("resendCode"));
+$("code").addEventListener("input",e=>{e.target.value=e.target.value.replace(/\D/g,"").slice(0,6);if(e.target.value.length===6)$("stepCode").classList.add("done");else $("stepCode").classList.remove("done")});
+
+/* signature pad */
+const pad=$("pad"), ctx=pad.getContext("2d"); let drawing=false, inked=false, last=null;
+function sizePad(){
+  const r=pad.getBoundingClientRect(), dpr=Math.max(1,window.devicePixelRatio||1);
+  const prev=inked?pad.toDataURL():null;
+  pad.width=Math.round(r.width*dpr);pad.height=Math.round(r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle="#14233C";ctx.lineWidth=2.4;
+  if(prev){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0,r.width,r.height);img.src=prev}
+}
+window.addEventListener("resize",()=>{if(!$("flow").hidden)sizePad()});
+const pos=e=>{const r=pad.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+pad.addEventListener("pointerdown",e=>{drawing=true;last=pos(e);pad.setPointerCapture(e.pointerId);ctx.beginPath();ctx.arc(last.x,last.y,1.1,0,Math.PI*2);ctx.fillStyle="#14233C";ctx.fill();inked=true;e.preventDefault()});
+pad.addEventListener("pointermove",e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;inked=true;e.preventDefault()});
+["pointerup","pointercancel","pointerleave"].forEach(t=>pad.addEventListener(t,()=>{drawing=false}));
+$("clear").onclick=()=>{ctx.clearRect(0,0,pad.width,pad.height);inked=false};
+function trimmedPng(){
+  const w=pad.width,h=pad.height,data=ctx.getImageData(0,0,w,h).data;let x0=w,y0=h,x1=0,y1=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(data[(y*w+x)*4+3]>10){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+  if(x1<=x0||y1<=y0) return null;
+  const m=8;x0=Math.max(0,x0-m);y0=Math.max(0,y0-m);x1=Math.min(w-1,x1+m);y1=Math.min(h-1,y1+m);
+  const c=document.createElement("canvas");c.width=x1-x0;c.height=y1-y0;c.getContext("2d").drawImage(pad,x0,y0,c.width,c.height,0,0,c.width,c.height);
+  return c.toDataURL("image/png");
+}
+function setMode(m){mode=m;$("tabDraw").setAttribute("aria-selected",m==="draw");$("tabType").setAttribute("aria-selected",m==="type");$("drawBox").hidden=m!=="draw";$("typeBox").hidden=m!=="type";if(m==="draw")sizePad()}
+$("tabDraw").onclick=()=>setMode("draw");$("tabType").onclick=()=>setMode("type");
+function updateTyped(){$("typed").textContent=$("name").value.trim()||"Your name"}
+$("name").addEventListener("input",updateTyped);
+
+/* sign */
+$("sign").onclick=async()=>{
+  err("");
+  const name=$("name").value.trim(), title=$("jobTitle").value.trim(), code=$("code").value.trim();
+  if(!codeSent) return err("First tap “Email me a code” and enter the code from the email.");
+  if(code.length!==6) return err("Enter the 6-digit code from the email.");
+  if(name.length<2) return err("Enter your full name.");
+  if(!title) return err("Enter your job title.");
+  let signaturePng=null, typedSignature=null;
+  if(mode==="draw"){signaturePng=inked?trimmedPng():null;if(!signaturePng)return err("Draw your signature, or switch to Type.")}
+  else typedSignature=name;
+  if(!$("consent").checked) return err("Tick the box to confirm you're authorised to sign.");
+  const b=$("sign");b.disabled=true;b.textContent="Signing…";
+  try{await call("sign",{code,name,title,signaturePng,typedSignature,consent:true});showDone(false,name)}
+  catch(e){err(e.message)}
+  finally{b.disabled=false;b.textContent="Sign the order form"}
+};
+function showDone(already,name){
+  $("flow").hidden=true;$("loading").hidden=true;$("done").hidden=false;
+  if(already){$("doneTitle").textContent="This order form is signed";$("doneText").textContent="Order form "+info.quoteNo+" was signed"+(info.signedName?" by "+info.signedName:"")+(info.signedAt?" on "+new Date(info.signedAt).toLocaleString("en-GB",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}):"")+"."}
+  else $("doneText").textContent="We've emailed the signed order form to you, with a signature certificate as its last page. Supvoices will be in touch about your start date and onboarding.";
+  window.scrollTo(0,0);
+}
+})();
+</script>
+</body>
+</html>

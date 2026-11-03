@@ -131,6 +131,11 @@ textarea{min-height:90px;resize:vertical}
 .qbar-k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .qbar b{font-family:var(--f-mono);font-weight:600;font-size:15px;overflow-wrap:anywhere}
 .qbar.editing{border-color:var(--green)}
+.sigline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.chip-s{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--field);border:1px solid var(--line)}
+.chip-s.signed{background:var(--ok-bg);color:var(--ink-green);border-color:transparent}
+.chip-s.opened{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.chip-s.cancelled{color:var(--muted)}
 .empty{text-align:center;color:var(--muted);padding:40px 16px}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
 details summary{padding:14px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
@@ -326,6 +331,35 @@ details li span{color:var(--muted)}
       <div class="row"><button class="btn primary small" id="orderBtn">Download</button><button class="btn small" id="previewOrderBtn">Preview</button></div>
       <span class="warnline" id="orderWarn" hidden></span></div>
   </div>
+  <div class="block" id="signBlock">
+    <div class="bh"><h2>Online signing</h2><span class="tag" id="signTag">Order form</span></div>
+    <p class="note" style="margin:0" id="signSetupNote" hidden>Set up online signing in Settings to send the order form for signature from here.</p>
+    <div id="signStatus" hidden style="display:grid;gap:10px">
+      <div class="sigline"><span class="chip-s" id="signChip"></span><span id="signText"></span></div>
+      <div class="row">
+        <button class="btn small" id="signRefresh">Refresh status</button>
+        <button class="btn small" id="signCopy">Copy link</button>
+        <button class="btn small" id="signWa">Send link by WhatsApp</button>
+        <button class="btn small primary" id="signDownload" hidden>Signed PDF</button>
+        <button class="btn small" id="signResend">Email a new link</button>
+        <button class="btn small danger" id="signCancel">Withdraw</button>
+      </div>
+      <p class="note" style="margin:0" id="signEditNote" hidden>Changes you make to this quote now don't change the order form already sent. Withdraw it and send a new one if the figures change.</p>
+    </div>
+    <button class="btn primary" id="signOpen">Send to sign</button>
+    <div id="signPanel" hidden style="display:grid;gap:12px">
+      <p class="note" style="margin:0">The client gets a link, reviews the order form on their phone, confirms their email with a code and signs. Both of you get the signed PDF by email.</p>
+      <div class="grid">
+        <div class="f"><label for="sg_name">Who signs for the client</label><input id="sg_name" autocomplete="off"></div>
+        <div class="f"><label for="sg_title">Their job title</label><input id="sg_title" autocomplete="off"></div>
+        <div class="f"><label for="sg_email">Their email</label><input id="sg_email" type="email" autocomplete="off"></div>
+        <div class="f"><label for="sg_days">Link works for (days)</label><input id="sg_days" type="number" inputmode="numeric" value="30"></div>
+      </div>
+      <div class="f"><label for="sg_msg">Message in the email (optional)</label><textarea id="sg_msg" style="min-height:64px" placeholder="For example: As discussed on Tuesday, here is the order form to get you started before the season."></textarea></div>
+      <label class="check"><input type="checkbox" id="sg_send" checked><span><b>Email the link to them</b><small>Untick to share the link yourself, for example by WhatsApp.</small></span></label>
+      <div class="row"><button class="btn primary" id="sg_go">Send order form</button><button class="btn" id="sg_close">Cancel</button></div>
+    </div>
+  </div>
   <div class="row" style="margin-bottom:8px">
     <button class="btn" id="sharePdfBtn" hidden>Share both PDFs</button>
     <button class="btn" id="jsonBtn">Export JSON</button>
@@ -362,7 +396,7 @@ details li span{color:var(--muted)}
 
 <!-- SAVED VIEW -->
 <section id="v-saved" hidden>
-  <div class="bh" style="margin-bottom:12px"><h2>Saved quotes</h2><span class="tag">This device</span></div>
+  <div class="bh" style="margin-bottom:12px"><h2>Saved quotes</h2><button class="btn small" id="signRefreshAll">Refresh signing status</button></div>
   <div id="savedList"></div>
   <div class="block">
     <div class="bh"><h2>Files</h2><span class="tag">Back up and move</span></div>
@@ -473,6 +507,17 @@ details li span{color:var(--muted)}
     </div>
     <div class="f"><label for="s_terms">Extra lines on the quote</label><textarea id="s_terms" data-s="terms" placeholder="Optional. One per line."></textarea></div>
   </div>
+  <div class="block">
+    <div class="bh"><h2>Online signing</h2><span class="tag">This device</span></div>
+    <p class="note" style="margin:0">Connects to the signing functions in your Supabase project. The sales key is kept on this device only and never included in backups.</p>
+    <div class="grid">
+      <div class="f"><label for="sgc_url">Supabase project URL</label><input id="sgc_url" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false"></div>
+      <div class="f"><label for="sgc_key">Sales key</label><input id="sgc_key" type="password" autocomplete="off" spellcheck="false" placeholder="SALES_ADMIN_KEY"></div>
+    </div>
+    <div class="row"><button class="btn small" id="sgc_save">Save and test</button><button class="btn small danger" id="sgc_forget">Remove</button></div>
+    <span class="note" id="sgc_status"></span>
+  </div>
+
   <div class="block">
     <div class="bh"><h2>Defaults</h2><span class="tag">Shared through GitHub</span></div>
     <p class="note" style="margin:0" id="defaultsInfo">The defaults are the prices and company settings every new device starts with.</p>
@@ -772,11 +817,11 @@ $("ghSave").onclick=()=>{const v=$("ghToken").value.trim();if(!v){toast("Paste t
 $("ghForget").onclick=()=>{try{localStorage.removeItem("svq-gh")}catch(e){}showDefaultsInfo();toast("Token removed")};
 const blankState=()=>Object.assign({},BLANK,{qdate:today()});
 $("clearSample").onclick=()=>{state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();window.scrollTo(0,0)};
-function newQuote(){state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();show("quote");window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote "+nextNo())}
+function newQuote(){state=blankState();editingId=null;LS.set("svq-draft",state);fillForm();render();renderSign();show("quote");window.scrollTo({top:0,behavior:"smooth"});toast("New blank quote "+nextNo())}
 $("newBtn").onclick=newQuote;
 $("newTop").onclick=newQuote;
 $("saveNewBtn").onclick=()=>{
-  delete state._id;delete state.quoteNo;editingId=null;
+  delete state._id;delete state.quoteNo;delete state.signing;editingId=null;renderSign();
   const {ok}=persistCurrent();toast(ok?"Saved as new quote "+state.quoteNo:"Couldn't save on this device");
 };
 $("toResult").onclick=()=>{show("quote");$("result").scrollIntoView({behavior:"smooth",block:"start"})};
@@ -829,8 +874,9 @@ function renderSaved(){
     const q=normalise(q0), r=calc(q,pricesFor(q));
     return '<div class="qitem" data-id="'+esc(q._id)+'"><div class="t"><h3>'+esc(q.company||"Untitled")+'</h3><span class="m">'+esc(q.quoteNo||"")+" · "+esc(q.qdate||"")+'</span></div>'+
       '<div class="m">Monthly <b>'+money(r.monthly,q.currency)+'</b> · Setup <b>'+money(r.setupNet,q.currency)+'</b> · '+n0(r.alw)+' invoices · Saves <b>'+money(r.saved,q.currency)+'</b>/mo</div>'+
+      (q.signing?'<div class="m"><span class="chip-s '+esc(q.signing.status)+'">'+esc(SIGN_LABEL[q.signing.status]||q.signing.status)+'</span> '+esc(q.signing.email||"")+'</div>':"")+
       (q.notes?'<div class="m">'+esc(q.notes.slice(0,120))+(q.notes.length>120?"…":"")+'</div>':"")+
-      '<div class="row"><button class="btn small" data-a="open">Open</button><button class="btn small" data-a="pdf">Quote PDF</button><button class="btn small" data-a="order">Order form</button><button class="btn small" data-a="json">JSON</button><button class="btn small" data-a="dup">Duplicate</button><button class="btn small" data-a="copy">Copy summary</button><button class="btn small danger" data-a="del">Delete</button></div></div>';
+      '<div class="row"><button class="btn small" data-a="open">Open</button><button class="btn small" data-a="pdf">Quote PDF</button><button class="btn small" data-a="order">Order form</button>'+(q.signing&&q.signing.status==="signed"?'<button class="btn small primary" data-a="signed">Signed PDF</button>':'')+'<button class="btn small" data-a="json">JSON</button><button class="btn small" data-a="dup">Duplicate</button><button class="btn small" data-a="copy">Copy summary</button><button class="btn small danger" data-a="del">Delete</button></div></div>';
   }).join("");
 }
 $("savedList").addEventListener("click",e=>{
@@ -839,14 +885,16 @@ $("savedList").addEventListener("click",e=>{
   const q=normalise(quotes[qi]), a=b.dataset.a;
   if(a==="open"||a==="dup"){
     state={...q}; delete state._prices;
-    if(a==="dup"){delete state._id;delete state.quoteNo;state.company=(q.company||"")+" (copy)";state.qdate=today();editingId=null}else editingId=q._id;
-    LS.set("svq-draft",state); fillForm(); render(); show("quote"); window.scrollTo(0,0);
+    if(a==="dup"){delete state._id;delete state.quoteNo;delete state.signing;state.company=(q.company||"")+" (copy)";state.qdate=today();editingId=null}else editingId=q._id;
+    $("signPanel").hidden=true;
+    LS.set("svq-draft",state); fillForm(); render(); renderSign(); show("quote"); window.scrollTo(0,0);
     if(a==="open") toast("Opened with today's prices");
   } else if(a==="pdf"||a==="order"){
     if(!q.quoteNo){assignNo(q);quotes[qi].quoteNo=q.quoteNo;LS.set("svq-quotes",quotes);renderSaved()}
     downloadPdf(q,pricesFor(q),a==="pdf"?"quote":"order");
   }
   else if(a==="json"){exportQuoteJson(q)}
+  else if(a==="signed"){downloadSigned({...q.signing,quoteNo:q.quoteNo})}
   else if(a==="copy"){copy(summaryText(q,calc(q,pricesFor(q))),"Summary copied")}
   else if(a==="del"){
     if(b.dataset.armed){quotes.splice(qi,1);LS.set("svq-quotes",quotes);if(editingId===id){editingId=null;delete state._id}renderSaved();render();toast("Quote deleted")}
@@ -882,7 +930,7 @@ function importData(d){
     const i=quotes.findIndex(x=>x._id===q._id); if(i>=0) quotes[i]=q; else quotes.unshift(q);
     LS.set("svq-quotes",quotes);
     state=normalise(q); delete state._prices; editingId=q._id; LS.set("svq-draft",state);
-    fillForm(); renderSaved(); render(); show("quote"); window.scrollTo(0,0);
+    fillForm(); renderSaved(); render(); renderSign(); show("quote"); window.scrollTo(0,0);
     return "Quote imported: "+(q.company||"Untitled");
   }
   if(d&&Array.isArray(d.quotes)){
@@ -1112,7 +1160,7 @@ function onboardingItems(q,r){
 }
 
 /* ================= order form PDF ================= */
-function buildOrderPdf(q,p){
+function buildOrderPdf(q,p,opts={}){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:"mm",format:"a4"});
   const r=calc(q,p), c=q.currency, {MUTED}=PC;
@@ -1205,13 +1253,24 @@ function buildOrderPdf(q,p){
   k.h2("8. Signatures",78); k.y+=2;
   k.para("Each person signing confirms they are authorised to sign for their company, and that their company has had the opportunity to read the documents in section 7 and accepts them. This Order Form may be signed electronically.",{size:9,after:2});
   const sig={content:"",styles:{minCellHeight:16}};
+  const online=!!opts.forSigning;
+  const supSig=online?{content:"Signed electronically when issued",styles:{minCellHeight:16,fontStyle:"italic",textColor:MUTED}}:{...sig};
+  const issued=new Date().toISOString().slice(0,10);
+  const box={}; const KEYS=["sig","name","title","date"]; const MM=72/25.4;
   k.table({head:[["","FOR "+(seller.company||"SUPPLIER").toUpperCase(),"FOR "+(custName||"CUSTOMER").toUpperCase()]],
     columnStyles:{0:{cellWidth:30,textColor:MUTED},1:{cellWidth:(PCW-30)/2},2:{cellWidth:(PCW-30)/2}},body:[
-    ["Signature",{...sig},{...sig}],
-    ["Name",val(seller.name),val(q.signName)],
-    ["Job title",val(seller.title),val(q.signTitle)],
-    ["Date",{...BL},{...BL}],
-  ]});
+    ["Signature",supSig,{...sig}],
+    ["Name",online?(seller.name||"Authorised signatory"):val(seller.name),online?{...BL}:val(q.signName)],
+    ["Job title",online?(seller.title||"For "+(seller.company||"the supplier")):val(seller.title),online?{...BL}:val(q.signTitle)],
+    ["Date",online?issued:{...BL},{...BL}],
+  ],
+    didDrawCell:d=>{
+      if(d.section!=="body"||d.column.index!==2) return;
+      const key=KEYS[d.row.index]; if(!key) return;
+      box.page=doc.internal.getCurrentPageInfo().pageNumber;
+      box[key]={x:+(d.cell.x*MM).toFixed(2),y:+(d.cell.y*MM).toFixed(2),w:+(d.cell.width*MM).toFixed(2),h:+(d.cell.height*MM).toFixed(2)};
+    }});
+  doc.__signBox=box;
 
   pdfFooter(doc,no);
   doc.setProperties({title:"Supvoices order form "+no+" - "+(q.company||""),author:seller.company||"",subject:"Order form",creator:"Supvoices Quote Builder"});
@@ -1247,6 +1306,121 @@ $("sharePdfBtn").onclick=async()=>{
   }catch(e){if(e.name!=="AbortError")toast("Sharing didn't work. Use the download buttons.")}
 };
 
+/* ================= online signing ================= */
+const SIGN_LABEL={sent:"Sent",opened:"Opened by client",signed:"Signed",cancelled:"Withdrawn"};
+let signCfg=LS.get("svq-sign",{url:"",key:""})||{url:"",key:""};
+const signReady=()=>!!(signCfg.url&&signCfg.key);
+async function signApi(action,body={},asBlob=false){
+  if(!signReady()) throw new Error("Set up online signing in Settings first.");
+  const r=await fetch(signCfg.url.replace(/\/$/,"")+"/functions/v1/sign-admin",{method:"POST",
+    headers:{"content-type":"application/json","x-sales-key":signCfg.key},body:JSON.stringify({action,...body})});
+  if(asBlob){if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error||("Server answered "+r.status));return await r.blob()}
+  const j=await r.json().catch(()=>({error:"No answer from the signing service ("+r.status+")."}));
+  if(!r.ok) throw new Error(j.error||"Signing service error "+r.status);
+  return j;
+}
+function fillSignCfg(){$("sgc_url").value=signCfg.url||"";$("sgc_key").value="";$("sgc_status").textContent=signReady()?"Saved on this device. Key ending …"+signCfg.key.slice(-4)+".":"Not set up on this device."}
+$("sgc_save").onclick=async()=>{
+  const url=$("sgc_url").value.trim().replace(/\/$/,""), key=$("sgc_key").value.trim()||signCfg.key;
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)){toast("Enter the project URL, like https://abcd.supabase.co");return}
+  if(!key){toast("Enter the sales key");return}
+  signCfg={url,key};LS.set("svq-sign",signCfg);fillSignCfg();renderSign();
+  try{const j=await signApi("ping");$("sgc_status").textContent="Connected. Emails are sent from "+j.mailFrom+(j.emailReady?".":", but email isn't set up on the server yet.");toast("Online signing connected")}
+  catch(e){$("sgc_status").textContent="Saved, but the test failed: "+e.message}
+};
+$("sgc_forget").onclick=()=>{try{localStorage.removeItem("svq-sign")}catch(e){}signCfg={url:"",key:""};fillSignCfg();renderSign();toast("Online signing removed from this device")};
+
+function signSummary(q,p){
+  const r=calc(q,p), c=q.currency, m=v=>money(v,c), rows=[];
+  rows.push(["Monthly fee",m(r.monthly)+" per month"+(r.eaPct?" (months 1 to 12)":"")]);
+  if(r.eaPct) rows.push(["From month 13",m(r.monthlyStd)+" per month"]);
+  rows.push(["Setup fee (one-off)",m(r.setupNet)]);
+  rows.push(["Invoices included",n0(r.alw)+" a month"]);
+  rows.push(["Above the allowance",money(r.overPrice,c,2)+" per invoice"]);
+  if(r.acct!=="none") rows.push(["Accounting connection",ACCT[r.acct].label]);
+  rows.push(["Initial term",q.term+" months"]);
+  if(q.startDate) rows.push(["Start date",fmtDate(dateOf(q.startDate))]);
+  rows.push(["Payment","Due in "+(seller.payDays||7)+" days, excl. VAT"]);
+  return {supplier:seller.company||"Supvoices",headline:"Supvoices for "+(q.legalName||q.company||"your company"),rows};
+}
+function blobToB64(blob){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=rej;fr.readAsDataURL(blob)})}
+function setSigning(sg){
+  state.signing=sg; LS.set("svq-draft",state);
+  const i=quotes.findIndex(x=>x._id===state._id); if(i>=0){quotes[i].signing=sg;LS.set("svq-quotes",quotes)}
+  renderSaved(); renderSign();
+}
+function renderSign(){
+  const sg=state.signing, ready=signReady();
+  $("signSetupNote").hidden=ready||!!sg;
+  $("signStatus").hidden=!sg;
+  const active=sg&&(sg.status==="sent"||sg.status==="opened");
+  $("signOpen").hidden=!ready||active||(sg&&sg.status==="signed")||!$("signPanel").hidden;
+  $("signOpen").textContent=sg&&sg.status==="cancelled"?"Send a new order form to sign":"Send to sign";
+  if(!sg) return;
+  const chip=$("signChip"); chip.className="chip-s "+sg.status; chip.textContent=SIGN_LABEL[sg.status]||sg.status;
+  const d=s=>s?new Date(s).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+  $("signText").textContent=sg.status==="signed"?"by "+(sg.signedName||"the client")+(sg.signedTitle?", "+sg.signedTitle:"")+" on "+d(sg.signedAt)
+    :sg.status==="cancelled"?"Withdrawn "+d(sg.cancelledAt)
+    :"to "+sg.email+" on "+d(sg.sentAt)+(sg.openedAt?" · opened "+d(sg.openedAt):"")+(sg.emailed===false?" · email not sent, share the link yourself":"");
+  $("signDownload").hidden=sg.status!=="signed";
+  ["signCopy","signWa","signResend","signCancel"].forEach(id=>$(id).hidden=!active);
+  $("signRefresh").hidden=sg.status==="cancelled";
+  $("signEditNote").hidden=!active;
+}
+$("signOpen").onclick=()=>{
+  $("sg_name").value=state.signName||state.contact||"";$("sg_title").value=state.signTitle||"";$("sg_email").value=state.contactEmail||"";
+  $("signPanel").hidden=false;renderSign();$("sg_email").focus();
+};
+$("sg_close").onclick=()=>{$("signPanel").hidden=true;renderSign()};
+$("sg_go").onclick=async()=>{
+  const email=$("sg_email").value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast("Enter the signer's email address");return}
+  if(!window.jspdf){toast("PDF tools didn't load. Reload the app.");return}
+  const btn=$("sg_go");btn.disabled=true;btn.textContent="Sending…";
+  try{
+    state.signName=$("sg_name").value.trim()||state.signName;state.signTitle=$("sg_title").value.trim()||state.signTitle;
+    if(!state.contactEmail) state.contactEmail=email;
+    persistCurrent(); fillForm();
+    const doc=buildOrderPdf(state,prices,{forSigning:true});
+    const pdfBase64=await blobToB64(doc.output("blob"));
+    const j=await signApi("create",{quoteNo:state.quoteNo,company:state.legalName||state.company,signerEmail:email,
+      signerName:$("sg_name").value.trim(),signerTitle:$("sg_title").value.trim(),summary:signSummary(state,prices),
+      signBox:doc.__signBox,pdfBase64,expiresDays:num($("sg_days").value)||30,sendEmail:$("sg_send").checked,message:$("sg_msg").value.trim()});
+    $("signPanel").hidden=true;
+    setSigning({id:j.id,url:j.url,status:"sent",quoteNo:state.quoteNo,email,sentAt:new Date().toISOString(),emailed:j.emailed,expiresAt:j.expiresAt});
+    if(j.emailError) toast("Created, but the email failed: "+j.emailError+". Copy the link and send it yourself.");
+    else toast(j.emailed?"Order form sent to "+email:"Created. Copy or share the link.");
+  }catch(e){toast("Couldn't send: "+e.message)}
+  finally{btn.disabled=false;btn.textContent="Send order form"}
+};
+async function refreshSigning(list){
+  const ids=list.map(s=>s&&s.id).filter(Boolean); if(!ids.length||!signReady()) return 0;
+  const j=await signApi("status",{ids}); let changed=0;
+  j.requests.forEach(rq=>{
+    const upd=sg=>{if(!sg||sg.id!==rq.id) return sg; const n={...sg,status:rq.status,openedAt:rq.opened_at,signedAt:rq.signed_at,signedName:rq.signed_name,signedTitle:rq.signed_title,cancelledAt:rq.cancelled_at};
+      if(n.status!==sg.status) changed++; return n};
+    quotes.forEach(q=>{q.signing=upd(q.signing)}); state.signing=upd(state.signing);
+  });
+  LS.set("svq-quotes",quotes);LS.set("svq-draft",state);renderSaved();renderSign();return changed;
+}
+$("signRefresh").onclick=async()=>{try{await refreshSigning([state.signing]);toast("Status: "+(SIGN_LABEL[state.signing.status]||state.signing.status))}catch(e){toast(e.message)}};
+$("signCopy").onclick=()=>copy(state.signing.url,"Signing link copied");
+$("signWa").onclick=()=>{const t="Here is the Supvoices order form "+state.quoteNo+" to review and sign: "+state.signing.url;
+  const a=document.createElement("a");a.href="https://wa.me/?text="+encodeURIComponent(t);a.target="_blank";a.rel="noopener";document.body.append(a);a.click();a.remove()};
+$("signResend").onclick=function(){armed(this,"Email a new link",async()=>{
+  try{const j=await signApi("resend",{id:state.signing.id});setSigning({...state.signing,url:j.url,emailed:true,sentAt:new Date().toISOString()});toast("New link emailed. The old link no longer works.")}
+  catch(e){toast(e.message)}})};
+$("signCancel").onclick=function(){armed(this,"Withdraw",async()=>{
+  try{await signApi("cancel",{id:state.signing.id});setSigning({...state.signing,status:"cancelled",cancelledAt:new Date().toISOString()});toast("Order form withdrawn")}
+  catch(e){toast(e.message)}})};
+async function downloadSigned(sg){
+  if(!sg) return;
+  try{const blob=await signApi("download",{id:sg.id,which:"signed"},true);saveBlob(blob,"Supvoices-Order-Form-"+(sg.quoteNo||"")+"-signed.pdf");toast("Signed PDF downloaded")}
+  catch(e){toast(e.message)}
+}
+$("signDownload").onclick=()=>downloadSigned(state.signing);
+$("signRefreshAll")&&($("signRefreshAll").onclick=async()=>{try{const n=await refreshSigning(quotes.map(q=>q.signing));toast(n?n+" updated":"No changes")}catch(e){toast(e.message)}});
+
 /* ================= views ================= */
 function show(v){
   ["quote","saved","prices"].forEach(x=>$("v-"+x).hidden=x!==v);
@@ -1257,9 +1431,9 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
 
-const APP_VERSION="2026-11-02";$("appVer").textContent=APP_VERSION;
+const APP_VERSION="2026-11-03";$("appVer").textContent=APP_VERSION;
 window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
-fillForm(); fillPrices(); fillSeller(); renderSaved(); render(); showDefaultsInfo(); loadRepoDefaults();
+fillForm(); fillPrices(); fillSeller(); fillSignCfg(); renderSaved(); render(); renderSign(); showDefaultsInfo(); loadRepoDefaults();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
 if("serviceWorker" in navigator&&location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();

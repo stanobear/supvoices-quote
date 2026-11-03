@@ -1,0 +1,9 @@
+# Only the settings the signing functions need. Deploy with:
+#   npx supabase functions deploy sign-admin sign-public --project-ref <your-project-ref>
+project_id = "supvoices-quote"
+
+[functions.sign-admin]
+verify_jwt = false
+
+[functions.sign-public]
+verify_jwt = false
