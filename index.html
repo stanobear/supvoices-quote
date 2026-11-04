@@ -143,7 +143,8 @@ textarea{min-height:90px;resize:vertical}
 .setup-items .nm{flex:1;min-width:0}
 .setup-items .am{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 .setup-items .off .am{text-decoration:line-through;color:var(--muted)}
-.setup-items .off .nm::after{content:" · no charge";color:var(--muted);font-size:12.5px}
+.setup-items .off .nm{color:var(--muted)}
+.setup-items .off .nm::after{content:" · left out";font-size:12.5px}
 .setup-total{display:flex;justify-content:space-between;padding:10px 12px;border-top:1px solid var(--line);font-weight:600}
 .setup-total span:last-child{font-family:var(--f-mono)}
 .empty{text-align:center;color:var(--muted);padding:40px 16px}
@@ -263,7 +264,7 @@ details li span{color:var(--muted)}
     <label class="check"><input type="checkbox" id="eaOn" data-k="eaOn"><span><b>Early-adopter offer</b><small>Monthly fee reduced for the first 12 months in return for a testimonial, a reference call per quarter and use of their logo. Printed as a special term on the order form.</small></span></label>
     <div class="f" id="eaPctRow"><label for="eaPct">Early-adopter reduction</label><div class="suffix"><input id="eaPct" type="number" min="0" max="100" inputmode="decimal" data-k="eaPct"><span>%</span></div></div>
     <div class="f"><span style="font-weight:500;font-size:14px">Setup fee items</span>
-      <span class="q">Untick an item to include it at no charge.</span>
+      <span class="q">Untick an item to leave it out of the setup fee, the quote and the order form.</span>
       <div class="setup-items" id="setupItems"></div></div>
     <label class="check"><input type="checkbox" id="showSetupItems" data-k="showSetupItems"><span><b>Itemise the setup fee on the quote</b><small>Untick to show only the setup total and the onboarding it covers.</small></span></label>
   </div>
@@ -659,7 +660,7 @@ function calc(s,p){
   const peakOverN=Math.max(0,num(s.peak)-alw);
 
   // setup
-  // Each item: [label, amount, key]. Unticked items (s.setupOff[key]) are included at no charge.
+  // Each item: [label, amount, key]. Unticked items (s.setupOff[key]) are left out of the fee and of the onboarding lists.
   const setupAll=[["Dedicated instance and configuration",p.onb,"onb"]];
   const rs={tourplan:["Connect TourPlan",p.rsTp,"rs"],nitro:["Connect Nitro",p.rsNi,"rs"],other:["Connect your reservation system",p.rsOt,"rs"]}[s.ressys];
   if(rs&&rs[1]) setupAll.push(rs);
@@ -673,6 +674,8 @@ function calc(s,p){
   const off=(s.setupOff&&typeof s.setupOff==="object")?s.setupOff:{};
   setupAll.forEach(l=>{l.charged=!off[l[2]]});
   const setup=setupAll.filter(l=>l.charged), setupFree=setupAll.filter(l=>!l.charged);
+  const leftOut=new Set(setupFree.map(l=>l[2]));
+  const trainShown=leftOut.has("train")?Math.min(trainN,p.trainIncl):trainN;
   const setupGross=setup.reduce((a,l)=>a+l[1],0);
   const setupNet=setupGross*(1-Math.min(100,num(s.discSetup))/100);
 
@@ -681,7 +684,7 @@ function calc(s,p){
   const valuePct=saved>0?(monthly+expOver)/saved*100:Infinity;
   const perInv=alw>0?monthly/alw:0;
   const year1=(monthly+expOver)*12+setupNet;
-  return {setupAll,setupFree,acct,acctMonth,hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
+  return {setupAll,setupFree,leftOut,trainShown,acct,acctMonth,hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
     setup,setupGross,setupNet,trainN,net,payback,valuePct,perInv,year1,inv};
 }
 
@@ -728,7 +731,6 @@ function render(){
   h+=L("Monthly fee",money(r.monthly,c),"tot");
   h+=L("Above "+n0(r.alw)+" invoices",money(r.overPrice,c,2)+" each","sub");
   h+=r.setup.map(l=>L(l[0],money(l[1],c),"sub")).join("");
-  h+=r.setupFree.map(l=>L(l[0],"no charge","sub")).join("");
   if(num(state.discSetup)) h+=L("Setup discount "+num(state.discSetup)+"%","−"+money(r.setupGross-r.setupNet,c),"sub");
   h+=L("Setup fee",money(r.setupNet,c),"tot");
   h+=L("First-year total",money(r.year1,c),"tot");
@@ -1118,11 +1120,10 @@ function buildPdf(q,p){
 
   // setup
   const itemise=q.showSetupItems!==false;
-  k.h2("Setup and onboarding (one-off)",20+(itemise?r.setupAll.length*8:16));
+  k.h2("Setup and onboarding (one-off)",20+(itemise?r.setup.length*8:16));
   const sb=[];
   if(itemise){
     r.setup.forEach(l=>sb.push([l[0],m(l[1])]));
-    r.setupFree.forEach(l=>sb.push([l[0],"Included"]));
     if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
   }
   sb.push(tot(itemise?"Setup fee":"Setup fee, covering the onboarding listed below"+(num(q.discSetup)?" (includes a "+num(q.discSetup)+"% discount)":""),m(r.setupNet)));
@@ -1177,15 +1178,16 @@ function apprTerm(p,cur){
 }
 function onboardingItems(q,r){
   const rs=q.ressys==="tourplan"||q.ressys==="nitro"?RES[q.ressys]:"your reservation system";
-  const items=[
-    "Your dedicated Supvoices instance set up in "+(q.region||seller.region||"the agreed hosting region")+".",
-    q.ressys==="none"?"Import of your open bookings or purchase orders.":"Connection to "+rs+" and first import of open vouchers or purchase orders.",
-    "Connection to your SharePoint for records, using the setup guide for your IT team (your IT team completes the Microsoft 365 steps).",
-    "Import of your supplier list"+(num(q.suppliers)?" ("+n0(num(q.suppliers))+" suppliers)":"")+" and matching rules (tolerance buffers, auto-post settings)."];
-  if(q.acct==="xeroPost") items.push("Connection to your Xero organisation, and mapping of account codes, tax rates, tracking categories and supplier contacts, which you confirm before the first bill is posted.");
-  if(q.acct==="xeroAppr") items.push("A workshop to design the approval workflow in Xero, a written Integration Specification for both parties to sign, and the build and acceptance testing it describes.");
-  if(num(q.statements)) items.push("Statement matching rules for "+n0(num(q.statements))+" supplier"+(num(q.statements)>1?"s":"")+" that send monthly statements.");
-  items.push(r.trainN+" remote training session"+(r.trainN===1?"":"s")+" for users and supervisors.");
+  const out=r.leftOut||new Set(), items=[];
+  if(!out.has("onb")) items.push("Your dedicated Supvoices instance set up in "+(q.region||seller.region||"the agreed hosting region")+".");
+  if(!out.has("rs")) items.push(q.ressys==="none"?"Import of your open bookings or purchase orders.":"Connection to "+rs+" and first import of open vouchers or purchase orders.");
+  if(!out.has("sp")) items.push("Connection to your SharePoint for records, using the setup guide for your IT team (your IT team completes the Microsoft 365 steps).");
+  if(!out.has("supp")) items.push("Import of your supplier list"+(num(q.suppliers)?" ("+n0(num(q.suppliers))+" suppliers)":"")+" and matching rules (tolerance buffers, auto-post settings).");
+  if(out.has("acct")){} else if(q.acct==="xeroPost") items.push("Connection to your Xero organisation, and mapping of account codes, tax rates, tracking categories and supplier contacts, which you confirm before the first bill is posted.");
+  if(!out.has("acct")&&q.acct==="xeroAppr") items.push("A workshop to design the approval workflow in Xero, a written Integration Specification for both parties to sign, and the build and acceptance testing it describes.");
+  if(num(q.statements)&&!out.has("stmt")) items.push("Statement matching rules for "+n0(num(q.statements))+" supplier"+(num(q.statements)>1?"s":"")+" that send monthly statements.");
+  const tn=r.trainShown??r.trainN;
+  if(tn) items.push(tn+" remote training session"+(tn===1?"":"s")+" for users and supervisors.");
   items.push("Support during your first month of live use.");
   return items;
 }
@@ -1462,7 +1464,7 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
 
-const APP_VERSION="2026-11-04";$("appVer").textContent=APP_VERSION;
+const APP_VERSION="2026-11-04b";$("appVer").textContent=APP_VERSION;
 window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
 fillForm(); fillPrices(); fillSeller(); fillSignCfg(); renderSaved(); render(); renderSign(); showDefaultsInfo(); loadRepoDefaults();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
