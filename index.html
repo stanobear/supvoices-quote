@@ -136,6 +136,16 @@ textarea{min-height:90px;resize:vertical}
 .chip-s.signed{background:var(--ok-bg);color:var(--ink-green);border-color:transparent}
 .chip-s.opened{background:var(--warn-bg);color:var(--warn);border-color:transparent}
 .chip-s.cancelled{color:var(--muted)}
+.setup-items{display:grid;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.setup-items label{display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:var(--field);font-weight:400;cursor:pointer}
+.setup-items label:first-child{border-top:0}
+.setup-items input{width:20px;height:20px;accent-color:var(--green);flex:none}
+.setup-items .nm{flex:1;min-width:0}
+.setup-items .am{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.setup-items .off .am{text-decoration:line-through;color:var(--muted)}
+.setup-items .off .nm::after{content:" · no charge";color:var(--muted);font-size:12.5px}
+.setup-total{display:flex;justify-content:space-between;padding:10px 12px;border-top:1px solid var(--line);font-weight:600}
+.setup-total span:last-child{font-family:var(--f-mono)}
 .empty{text-align:center;color:var(--muted);padding:40px 16px}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:14px}
 details summary{padding:14px 16px;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:16px}
@@ -252,6 +262,10 @@ details li span{color:var(--muted)}
     </div>
     <label class="check"><input type="checkbox" id="eaOn" data-k="eaOn"><span><b>Early-adopter offer</b><small>Monthly fee reduced for the first 12 months in return for a testimonial, a reference call per quarter and use of their logo. Printed as a special term on the order form.</small></span></label>
     <div class="f" id="eaPctRow"><label for="eaPct">Early-adopter reduction</label><div class="suffix"><input id="eaPct" type="number" min="0" max="100" inputmode="decimal" data-k="eaPct"><span>%</span></div></div>
+    <div class="f"><span style="font-weight:500;font-size:14px">Setup fee items</span>
+      <span class="q">Untick an item to include it at no charge.</span>
+      <div class="setup-items" id="setupItems"></div></div>
+    <label class="check"><input type="checkbox" id="showSetupItems" data-k="showSetupItems"><span><b>Itemise the setup fee on the quote</b><small>Untick to show only the setup total and the onboarding it covers.</small></span></label>
   </div>
 
   <details>
@@ -564,7 +578,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const BLANK={company:"",contact:"",contactEmail:"",qdate:today(),currency:"GBP",ressys:"tourplan",users:2,entities:1,
   inv:0,peak:0,suppliers:0,statements:0,minBase:8,minFile:2,pctProb:25,minProb:20,salary:30000,hoursYear:1700,
   allowance:"",term:"12",training:2,acct:"none",discSetup:0,discMonthly:0,eaOn:false,eaPct:"",
-  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true,
+  pctStp:50,minStp:1,cutRest:40,cutProb:40,notes:"",pdfMsg:"",pdfSavings:true,showSetupItems:true,setupOff:{},
   legalName:"",companyNo:"",taxId:"",region:"",address:"",billingContact:"",noticesEmail:"",startDate:"",goLive:"",signName:"",signTitle:"",poNumber:"",specialTerms:""};
 const SAMPLE=Object.assign({},BLANK,{company:"Example: Highland Coach Tours",contact:"Sample contact",inv:420,peak:900,suppliers:380,statements:4,users:3,minBase:9,pctProb:30,minProb:25,salary:32000,_sample:true});
 
@@ -645,16 +659,20 @@ function calc(s,p){
   const peakOverN=Math.max(0,num(s.peak)-alw);
 
   // setup
-  const setup=[["Dedicated instance and configuration",p.onb]];
-  const rs={tourplan:["Connect TourPlan",p.rsTp],nitro:["Connect Nitro",p.rsNi],other:["Connect your reservation system",p.rsOt]}[s.ressys];
-  if(rs&&rs[1]) setup.push(rs);
-  if(p.spSetup) setup.push(["SharePoint records setup",p.spSetup]);
-  const blocks=Math.ceil(num(s.suppliers)/100); if(blocks&&p.supp) setup.push(["Import of "+n0(num(s.suppliers))+" suppliers",blocks*p.supp]);
-  const st=num(s.statements); if(st&&p.stmt) setup.push(["Statement matching rules for "+st+" supplier"+(st>1?"s":""),st*p.stmt]);
-  if(acct==="xeroPost"&&num(p.xpSetup)) setup.push(["Xero connection and mapping",num(p.xpSetup)]);
-  if(acct==="xeroAppr"&&num(p.xaSetup)) setup.push(["Approval in Xero: design, specification and build (up to "+n0(num(p.xaDays))+" days)",num(p.xaSetup)]);
+  // Each item: [label, amount, key]. Unticked items (s.setupOff[key]) are included at no charge.
+  const setupAll=[["Dedicated instance and configuration",p.onb,"onb"]];
+  const rs={tourplan:["Connect TourPlan",p.rsTp,"rs"],nitro:["Connect Nitro",p.rsNi,"rs"],other:["Connect your reservation system",p.rsOt,"rs"]}[s.ressys];
+  if(rs&&rs[1]) setupAll.push(rs);
+  if(p.spSetup) setupAll.push(["SharePoint records setup",p.spSetup,"sp"]);
+  const blocks=Math.ceil(num(s.suppliers)/100); if(blocks&&p.supp) setupAll.push(["Import of "+n0(num(s.suppliers))+" suppliers",blocks*p.supp,"supp"]);
+  const st=num(s.statements); if(st&&p.stmt) setupAll.push(["Statement matching rules for "+st+" supplier"+(st>1?"s":""),st*p.stmt,"stmt"]);
+  if(acct==="xeroPost"&&num(p.xpSetup)) setupAll.push(["Xero connection and mapping",num(p.xpSetup),"acct"]);
+  if(acct==="xeroAppr"&&num(p.xaSetup)) setupAll.push(["Approval in Xero: design, specification and build (up to "+n0(num(p.xaDays))+" days)",num(p.xaSetup),"acct"]);
   const trainN=Math.max(0,Math.round(num(s.training)));
-  const tr=Math.max(0,trainN-p.trainIncl); if(tr) setup.push([tr+" extra training session"+(tr>1?"s":""),tr*p.train]);
+  const tr=Math.max(0,trainN-p.trainIncl); if(tr) setupAll.push([tr+" extra training session"+(tr>1?"s":""),tr*p.train,"train"]);
+  const off=(s.setupOff&&typeof s.setupOff==="object")?s.setupOff:{};
+  setupAll.forEach(l=>{l.charged=!off[l[2]]});
+  const setup=setupAll.filter(l=>l.charged), setupFree=setupAll.filter(l=>!l.charged);
   const setupGross=setup.reduce((a,l)=>a+l[1],0);
   const setupNet=setupGross*(1-Math.min(100,num(s.discSetup))/100);
 
@@ -663,7 +681,7 @@ function calc(s,p){
   const valuePct=saved>0?(monthly+expOver)/saved*100:Infinity;
   const perInv=alw>0?monthly/alw:0;
   const year1=(monthly+expOver)*12+setupNet;
-  return {acct,acctMonth,hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
+  return {setupAll,setupFree,acct,acctMonth,hourly,hToday,costToday,hNew,hSaved,saved,fte,alw,autoAlw,lines,gross,subGross,extraEnt,termPct,discPct,monthlyStd,eaPct,monthly,overPrice,expOverN,expOver,peakOverN,
     setup,setupGross,setupNet,trainN,net,payback,valuePct,perInv,year1,inv};
 }
 
@@ -710,6 +728,7 @@ function render(){
   h+=L("Monthly fee",money(r.monthly,c),"tot");
   h+=L("Above "+n0(r.alw)+" invoices",money(r.overPrice,c,2)+" each","sub");
   h+=r.setup.map(l=>L(l[0],money(l[1],c),"sub")).join("");
+  h+=r.setupFree.map(l=>L(l[0],"no charge","sub")).join("");
   if(num(state.discSetup)) h+=L("Setup discount "+num(state.discSetup)+"%","−"+money(r.setupGross-r.setupNet,c),"sub");
   h+=L("Setup fee",money(r.setupNet,c),"tot");
   h+=L("First-year total",money(r.year1,c),"tot");
@@ -717,6 +736,8 @@ function render(){
 
   $("allowanceHint").textContent=num(state.allowance)>0?"Auto would be "+n0(r.autoAlw)+".":"Auto: "+n0(r.autoAlw)+" (volume rounded up to the next 50).";
   $("eaPctRow").hidden=!state.eaOn;
+  $("setupItems").innerHTML=r.setupAll.map(l=>'<label class="'+(l.charged?"":"off")+'"><input type="checkbox" data-setup="'+l[2]+'"'+(l.charged?" checked":"")+'><span class="nm">'+esc(l[0])+'</span><span class="am">'+money(l[1],c)+'</span></label>').join("")
+    +'<div class="setup-total"><span>Setup fee'+(num(state.discSetup)?" after "+num(state.discSetup)+"% discount":"")+'</span><span>'+money(r.setupNet,c)+'</span></div>';
   $("acctHint").textContent={none:"Recommended: approve in Supvoices, post approved bills to Xero.",
     xeroPost:"Approved bills and credit notes go to Xero, with a daily integrity check.",
     xeroAppr:"Custom: needs a signed Integration Specification. Extra days at "+money(num(prices.dayRate),c)+"."}[r.acct];
@@ -755,6 +776,11 @@ document.querySelectorAll("[data-k]").forEach(el=>{
   };
   el.addEventListener("input",h);
   if(el.type==="checkbox"||el.tagName==="SELECT") el.addEventListener("change",h);
+});
+$("setupItems").addEventListener("change",e=>{
+  const key=e.target.dataset&&e.target.dataset.setup; if(!key) return;
+  const off={...(state.setupOff||{})}; if(e.target.checked) delete off[key]; else off[key]=true;
+  state.setupOff=off; LS.set("svq-draft",state); render();
 });
 document.querySelectorAll("[data-p]").forEach(el=>el.addEventListener("input",()=>{prices[el.dataset.p]=num(el.value);LS.set("svq-prices",prices);render()}));
 document.querySelectorAll("[data-s]").forEach(el=>el.addEventListener("input",()=>{seller[el.dataset.s]=el.value;LS.set("svq-seller",seller);render()}));
@@ -1091,10 +1117,15 @@ function buildPdf(q,p){
   k.table({head:[["ITEM","AMOUNT"]],columnStyles:{1:{halign:"right",cellWidth:40}},body:mb});
 
   // setup
-  k.h2("Setup and onboarding (one-off)",20+r.setup.length*8);
-  const sb=r.setup.map(l=>[l[0],m(l[1])]);
-  if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
-  sb.push(tot("Setup fee",m(r.setupNet)));
+  const itemise=q.showSetupItems!==false;
+  k.h2("Setup and onboarding (one-off)",20+(itemise?r.setupAll.length*8:16));
+  const sb=[];
+  if(itemise){
+    r.setup.forEach(l=>sb.push([l[0],m(l[1])]));
+    r.setupFree.forEach(l=>sb.push([l[0],"Included"]));
+    if(num(q.discSetup)) sb.push(["Setup discount "+num(q.discSetup)+"%","-"+m(r.setupGross-r.setupNet)]);
+  }
+  sb.push(tot(itemise?"Setup fee":"Setup fee, covering the onboarding listed below"+(num(q.discSetup)?" (includes a "+num(q.discSetup)+"% discount)":""),m(r.setupNet)));
   k.table({head:[["ITEM","AMOUNT"]],columnStyles:{1:{halign:"right",cellWidth:40}},body:sb});
 
   // included
@@ -1431,7 +1462,7 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
 
-const APP_VERSION="2026-11-03";$("appVer").textContent=APP_VERSION;
+const APP_VERSION="2026-11-04";$("appVer").textContent=APP_VERSION;
 window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
 fillForm(); fillPrices(); fillSeller(); fillSignCfg(); renderSaved(); render(); renderSign(); showDefaultsInfo(); loadRepoDefaults();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
