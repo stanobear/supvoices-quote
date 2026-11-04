@@ -917,11 +917,14 @@ $("savedList").addEventListener("click",e=>{
     $("signPanel").hidden=true;
     LS.set("svq-draft",state); fillForm(); render(); renderSign(); show("quote"); window.scrollTo(0,0);
     if(a==="open") toast("Opened with today's prices");
+  } else if((a==="pdf"||a==="order")&&id===editingId){
+    // The quote that's open may have changes since it was saved: save them, then use them.
+    persistCurrent(); downloadPdf(state,prices,a==="pdf"?"quote":"order");
   } else if(a==="pdf"||a==="order"){
     if(!q.quoteNo){assignNo(q);quotes[qi].quoteNo=q.quoteNo;LS.set("svq-quotes",quotes);renderSaved()}
     downloadPdf(q,pricesFor(q),a==="pdf"?"quote":"order");
   }
-  else if(a==="json"){exportQuoteJson(q)}
+  else if(a==="json"){if(id===editingId){persistCurrent();exportQuoteJson(state)}else exportQuoteJson(q)}
   else if(a==="signed"){downloadSigned({...q.signing,quoteNo:q.quoteNo})}
   else if(a==="copy"){copy(summaryText(q,calc(q,pricesFor(q))),"Summary copied")}
   else if(a==="del"){
@@ -1464,7 +1467,7 @@ function show(v){
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{show(b.dataset.view);window.scrollTo(0,0)});
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["quote","saved","prices"].includes(h))show(h)});
 
-const APP_VERSION="2026-11-04b";$("appVer").textContent=APP_VERSION;
+const APP_VERSION="2026-11-04c";$("appVer").textContent=APP_VERSION;
 window.__svq={buildPdf,buildOrderPdf,calc,get state(){return state},get prices(){return prices},get seller(){return seller}};
 fillForm(); fillPrices(); fillSeller(); fillSignCfg(); renderSaved(); render(); renderSign(); showDefaultsInfo(); loadRepoDefaults();
 const h0=location.hash.slice(1); show(["quote","saved","prices"].includes(h0)?h0:"quote");
